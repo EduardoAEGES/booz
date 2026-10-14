@@ -8,13 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=4">
 </head>
 <body>
   <!-- ============ Barra lateral ============ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-      <a class="brand" href="index.html">
+      <a class="brand" href="#/">
         <img src="img/logo.jpg" alt="Logo BOOZ IB" class="brand-logo">
         <span class="brand-text">BOOZ IB</span>
       </a>
@@ -30,32 +30,32 @@
     </button>
 
     <nav class="nav">
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Inicio">
+      <a href="#/pronto/Inicio" class="nav-item" data-seccion="Inicio">
         <svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio
       </a>
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Todas las materias">
+      <a href="#/pronto/Todas las materias" class="nav-item" data-seccion="Todas las materias">
         <svg viewBox="0 0 24 24"><path d="M4 5h6v14H4zM14 5h6v14h-6z"/></svg>Todas las materias
       </a>
 
       <p class="nav-titulo">Estudio</p>
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Apuntes">
+      <a href="#/pronto/Apuntes" class="nav-item" data-seccion="Apuntes">
         <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Apuntes
       </a>
-      <a href="#" class="nav-item activo" data-vista="banco">
+      <a href="#/" class="nav-item" data-seccion="banco">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Banco de preguntas
       </a>
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Tarjetas de memoria">
+      <a href="#/pronto/Tarjetas de memoria" class="nav-item" data-seccion="Tarjetas de memoria">
         <svg viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="15" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Tarjetas de memoria
       </a>
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Hojas de fórmulas">
+      <a href="#/pronto/Hojas de fórmulas" class="nav-item" data-seccion="Hojas de fórmulas">
         <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M12 11v6"/></svg>Hojas de fórmulas
       </a>
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Exámenes de práctica">
+      <a href="#/pronto/Exámenes de práctica" class="nav-item" data-seccion="Exámenes de práctica">
         <svg viewBox="0 0 24 24"><path d="M9 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9"/><rect x="4" y="7" width="9" height="12" rx="2"/></svg>Exámenes de práctica
       </a>
 
       <p class="nav-titulo">EI / Monografía / TdC</p>
-      <a href="#" class="nav-item" data-vista="proximamente" data-nombre="Ejemplares">
+      <a href="#/pronto/Ejemplares" class="nav-item" data-seccion="Ejemplares">
         <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h8"/></svg>Ejemplares
       </a>
     </nav>
@@ -87,34 +87,28 @@
 
     <main class="panel">
       <section class="hero">
-        <nav class="migas" aria-label="Ruta">
-          <a href="#">IB</a>
-          <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
-          <a href="#" id="migaMateria">Matemáticas: Aplicaciones e Interpretación (AI)</a>
-          <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
-          <span id="migaActual">Banco de preguntas</span>
-        </nav>
-        <h1>Matemáticas: Aplicaciones e Interpretación (AI)</h1>
+        <nav class="migas" aria-label="Ruta" id="migas"></nav>
+        <h1 id="tituloHero"></h1>
 
         <div class="tabs" role="tablist">
-          <button class="tab" data-vista="proximamente" data-nombre="Todo">
+          <a class="tab" href="#/pronto/Todo" data-seccion="Todo">
             <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>Todo
-          </button>
-          <button class="tab activo" data-vista="banco">
+          </a>
+          <a class="tab" href="#/" data-seccion="banco">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Banco de preguntas
-          </button>
-          <button class="tab" data-vista="proximamente" data-nombre="Apuntes">
+          </a>
+          <a class="tab" href="#/pronto/Apuntes" data-seccion="Apuntes">
             <svg viewBox="0 0 24 24"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>Apuntes
-          </button>
-          <button class="tab" data-vista="proximamente" data-nombre="Tarjetas de memoria">
+          </a>
+          <a class="tab" href="#/pronto/Tarjetas de memoria" data-seccion="Tarjetas de memoria">
             <svg viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="15" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Tarjetas
-          </button>
-          <button class="tab" data-vista="proximamente" data-nombre="Hojas de fórmulas">
+          </a>
+          <a class="tab" href="#/pronto/Hojas de fórmulas" data-seccion="Hojas de fórmulas">
             <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M12 11v6"/></svg>Fórmulas
-          </button>
-          <button class="tab" data-vista="proximamente" data-nombre="Exámenes de práctica">
+          </a>
+          <a class="tab" href="#/pronto/Exámenes de práctica" data-seccion="Exámenes de práctica">
             <svg viewBox="0 0 24 24"><path d="M9 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9"/><rect x="4" y="7" width="9" height="12" rx="2"/></svg>Exámenes
-          </button>
+          </a>
         </div>
       </section>
 
@@ -123,55 +117,44 @@
         <ul class="acordeon" id="acordeon"></ul>
       </section>
 
-      <!-- Vista: preguntas de un tema o subtema -->
+      <!-- Vista: preguntas de un subtema o de un tema completo -->
       <section class="vista oculta" id="vistaPreguntas">
-        <button class="volver" id="btnVolver">
-          <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>Volver a los temas
-        </button>
-        <div class="vista-cabecera">
-          <span class="tema-badge" id="temaBadge"></span>
-          <h2 id="tituloPreguntas"></h2>
-        </div>
-
-        <div class="toolbar">
-          <div class="buscador">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input type="search" id="busqueda" placeholder="Buscar en estas preguntas…">
-          </div>
-          <select id="orden" aria-label="Ordenar">
-            <option value="codigo">Ordenar: código</option>
-            <option value="dificultad">Ordenar: dificultad</option>
-            <option value="puntos">Ordenar: puntos</option>
-          </select>
-          <button class="btn" id="btnAleatoria">🎲 Aleatoria</button>
-        </div>
-
         <div class="filtros">
-          <div class="chips" data-filtro="niveles">
-            <button class="chip-toggle" data-valor="SL">NM</button>
-            <button class="chip-toggle" data-valor="HL">NS</button>
-          </div>
-          <div class="chips" data-filtro="papers">
-            <button class="chip-toggle" data-valor="1">Prueba 1</button>
-            <button class="chip-toggle" data-valor="2">Prueba 2</button>
-            <button class="chip-toggle" data-valor="3">Prueba 3</button>
-          </div>
-          <div class="chips" data-filtro="dificultades">
-            <button class="chip-toggle" data-valor="facil">Fácil</button>
-            <button class="chip-toggle" data-valor="media">Media</button>
-            <button class="chip-toggle" data-valor="dificil">Difícil</button>
-          </div>
-          <div class="segmented" id="filtroEstado">
-            <button data-valor="todas" class="activo">Todas</button>
-            <button data-valor="pendientes">Pendientes</button>
-            <button data-valor="completadas">Hechas</button>
-            <button data-valor="favoritas">★</button>
-          </div>
-        </div>
-
-        <div class="resumen">
-          <p id="contador"></p>
-          <button class="link-btn" id="btnExpandir">Mostrar todas las soluciones</button>
+          <label class="campo">
+            <span>Completado</span>
+            <select id="fEstado">
+              <option value="todas">Todas</option>
+              <option value="pendientes">Pendientes</option>
+              <option value="completadas">Completadas</option>
+              <option value="favoritas">Favoritas</option>
+            </select>
+          </label>
+          <label class="campo">
+            <span>Prueba</span>
+            <select id="fPaper">
+              <option value="">Todas las pruebas</option>
+              <option value="1">Prueba 1</option>
+              <option value="2">Prueba 2</option>
+              <option value="3">Prueba 3</option>
+            </select>
+          </label>
+          <label class="campo">
+            <span>Nivel</span>
+            <select id="fNivel">
+              <option value="">Todos los niveles</option>
+              <option value="SL">NM</option>
+              <option value="HL">NS</option>
+            </select>
+          </label>
+          <label class="campo">
+            <span>Dificultad</span>
+            <select id="fDificultad">
+              <option value="">Todas</option>
+              <option value="facil">Fácil</option>
+              <option value="media">Media</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </label>
         </div>
 
         <div id="listaPreguntas" class="lista-preguntas"></div>
@@ -183,15 +166,80 @@
           <img src="img/logo.jpg" alt="" class="vacio-logo">
           <h3 id="tituloProximamente">Próximamente</h3>
           <p>Esta sección está en construcción. Mientras tanto, practica en el banco de preguntas.</p>
-          <button class="btn primario" id="btnIrBanco">Ir al banco de preguntas</button>
+          <a class="btn primario" href="#/">Ir al banco de preguntas</a>
         </div>
       </section>
     </main>
   </div>
 
+  <div class="fondo-expandido" id="fondoExpandido"></div>
+
+  <!-- ============ Diálogo: dibujar ============ -->
+  <dialog class="dialogo" id="dlgDibujo">
+    <div class="dialogo-cabecera">
+      <h3>Dibujar</h3>
+      <button class="icon-btn" data-cerrar aria-label="Cerrar">✕</button>
+    </div>
+    <div class="dibujo-herramientas">
+      <div class="colores" id="colores">
+        <button class="color activo" data-color="#14182b" style="background:#14182b" aria-label="Negro"></button>
+        <button class="color" data-color="#2563eb" style="background:#2563eb" aria-label="Azul"></button>
+        <button class="color" data-color="#dc2626" style="background:#dc2626" aria-label="Rojo"></button>
+        <button class="color" data-color="#16a34a" style="background:#16a34a" aria-label="Verde"></button>
+      </div>
+      <label class="grosor">Grosor <input type="range" id="grosor" min="1" max="12" value="3"></label>
+      <button class="accion" id="btnBorrador">Borrador</button>
+      <button class="accion" id="btnDeshacer">Deshacer</button>
+      <button class="accion" id="btnLimpiarLienzo">Limpiar</button>
+    </div>
+    <canvas id="lienzo" width="900" height="500"></canvas>
+    <div class="dialogo-pie">
+      <button class="accion" data-cerrar>Cancelar</button>
+      <button class="accion principal" id="btnGuardarDibujo">Añadir a la respuesta</button>
+    </div>
+  </dialog>
+
+  <!-- ============ Diálogo: editor de fórmulas ============ -->
+  <dialog class="dialogo" id="dlgMate">
+    <div class="dialogo-cabecera">
+      <h3>Insertar fórmula</h3>
+      <button class="icon-btn" data-cerrar aria-label="Cerrar">✕</button>
+    </div>
+    <div class="atajos" id="atajos">
+      <button data-latex="\frac{a}{b}">a/b</button>
+      <button data-latex="\sqrt{x}">√x</button>
+      <button data-latex="\sqrt[n]{x}">ⁿ√x</button>
+      <button data-latex="x^{n}">xⁿ</button>
+      <button data-latex="x_{n}">xₙ</button>
+      <button data-latex="\pi">π</button>
+      <button data-latex="\theta">θ</button>
+      <button data-latex="\le">≤</button>
+      <button data-latex="\ge">≥</button>
+      <button data-latex="\ne">≠</button>
+      <button data-latex="\pm">±</button>
+      <button data-latex="\times">×</button>
+      <button data-latex="\infty">∞</button>
+      <button data-latex="\log_{a}x">logₐ</button>
+      <button data-latex="\ln x">ln</button>
+      <button data-latex="\sin x">sin</button>
+      <button data-latex="\frac{dy}{dx}">dy/dx</button>
+      <button data-latex="\int_{a}^{b} f(x)\,dx">∫</button>
+      <button data-latex="\sum_{k=1}^{n}">Σ</button>
+      <button data-latex="\begin{pmatrix} a & b \\ c & d \end{pmatrix}">matriz</button>
+    </div>
+    <textarea id="entradaLatex" rows="3" placeholder="Escribe en LaTeX, p. ej. x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}"></textarea>
+    <div class="vista-latex" id="vistaLatex">Vista previa</div>
+    <div class="dialogo-pie">
+      <button class="accion" data-cerrar>Cancelar</button>
+      <button class="accion principal" id="btnInsertarLatex">Insertar</button>
+    </div>
+  </dialog>
+
+  <div class="aviso" id="aviso" role="status"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-  <script src="js/preguntas.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/preguntas.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
