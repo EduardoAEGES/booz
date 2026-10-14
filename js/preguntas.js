@@ -18,19 +18,18 @@ const TEMAS = {
   1: {
     nombre: "Número y álgebra", color: "#4f46e5",
     subtemas: [
-      { codigo: "1.1", nivel: "SL", nombre: "Notación científica" },
-      { codigo: "1.2", nivel: "SL", nombre: "Progresiones aritméticas" },
+      { codigo: "1.2", nivel: "SL", nombre: "Sucesiones y notación sigma" },
       { codigo: "1.3", nivel: "SL", nombre: "Progresiones geométricas" },
-      { codigo: "1.4", nivel: "SL", nombre: "Aplicaciones financieras" },
-      { codigo: "1.5", nivel: "SL", nombre: "Exponentes e introducción a los logaritmos" },
-      { codigo: "1.6", nivel: "SL", nombre: "Aproximación y errores" },
-      { codigo: "1.7", nivel: "SL", nombre: "Amortizaciones y anualidades" },
-      { codigo: "1.8", nivel: "SL", nombre: "Resolución de ecuaciones con tecnología" },
+      { codigo: "1.4", nivel: "SL", nombre: "Aplicaciones financieras: interés compuesto y depreciación anual" },
+      { codigo: "1.5", nivel: "SL", nombre: "Exponentes y logaritmos" },
+      { codigo: "1.6", nivel: "SL", nombre: "Aproximación y estimación" },
+      { codigo: "1.7", nivel: "SL", nombre: "Pago de préstamos y amortización" },
+      { codigo: "1.8", nivel: "SL", nombre: "Uso de tecnología para resolver sistemas de ecuaciones lineales y ecuaciones polinómicas" },
       { codigo: "1.9", nivel: "HL", nombre: "Leyes de los logaritmos" },
       { codigo: "1.10", nivel: "HL", nombre: "Expresiones con exponentes no enteros" },
       { codigo: "1.11", nivel: "HL", nombre: "Suma de progresiones geométricas infinitas" },
       { codigo: "1.12", nivel: "HL", nombre: "Introducción a los números complejos" },
-      { codigo: "1.13", nivel: "HL", nombre: "Números complejos: forma polar y exponencial" },
+      { codigo: "1.13", nivel: "HL", nombre: "Números complejos (continuación)" },
       { codigo: "1.14", nivel: "HL", nombre: "Introducción a las matrices" },
       { codigo: "1.15", nivel: "HL", nombre: "Autovalores y autovectores" }
     ]
@@ -123,7 +122,7 @@ const TEMAS = {
 const PREGUNTAS = [
   /* ===================== TEMA 1: NÚMERO Y ÁLGEBRA ===================== */
   {
-    codigo: "NA-01", subtema: "1.1", nivel: "SL", paper: 1, dificultad: "facil",
+    codigo: "NA-01", subtema: "1.5", nivel: "SL", paper: 1, dificultad: "facil",
     enunciado: t`Un grano de polen tiene un diámetro de $0.000\,372$ metros.`,
     partes: [
       { texto: t`Escribe el diámetro en la forma $a \times 10^{k}$, donde $1 \le a < 10$ y $k \in \mathbb{Z}$.`, puntos: 2 },
@@ -233,6 +232,263 @@ const PREGUNTAS = [
       t`$\begin{pmatrix} x \\ y \end{pmatrix} = \dfrac{1}{5}\begin{pmatrix} 3 & -1 \\ -1 & 2 \end{pmatrix}\begin{pmatrix} 7 \\ 11 \end{pmatrix} = \begin{pmatrix} 2 \\ 3 \end{pmatrix}$, es decir $x = 2,\ y = 3$.`
     ],
     pista: t`Para una matriz $2\times2$: $\det = ad - bc$ y $A^{-1} = \frac{1}{\det A}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}$. El sistema es $A\mathbf{x} = \mathbf{b}$, así que $\mathbf{x} = A^{-1}\mathbf{b}$.`
+  },
+
+  /* ----- Tema 1: más preguntas por subtema ----- */
+  {
+    codigo: "NA-09", subtema: "1.10", nivel: "HL", paper: 1, dificultad: "media",
+    enunciado: t`Preguntas sobre radicales y exponentes fraccionarios.`,
+    partes: [
+      { texto: t`Simplifica $\dfrac{6}{\sqrt{3}} + \sqrt{27}$, dando la respuesta en la forma $a\sqrt{3}$, donde $a \in \mathbb{Z}$.`, puntos: 2 },
+      { texto: t`Resuelve la ecuación $x\sqrt{2} + 5 = 3x\sqrt{2} - 1$, dando la respuesta en la forma $\dfrac{a\sqrt{b}}{c}$, donde $a, b, c \in \mathbb{Z}$.`, puntos: 3 },
+      { texto: t`Sabiendo que $\dfrac{\sqrt[4]{16^{3}}}{2^{-1}} = 2^{k}$, halla el valor de $k$.`, puntos: 2 }
+    ],
+    solucion: [
+      t`$\dfrac{6}{\sqrt{3}} = \dfrac{6\sqrt{3}}{3} = 2\sqrt{3}$ y $\sqrt{27} = 3\sqrt{3}$, así que la suma es $5\sqrt{3}$.`,
+      t`$6 = 2x\sqrt{2} \Rightarrow x = \dfrac{3}{\sqrt{2}} = \dfrac{3\sqrt{2}}{2}$`,
+      t`$\sqrt[4]{16^{3}} = (2^{4})^{3/4} = 2^{3}$; $\;\dfrac{2^{3}}{2^{-1}} = 2^{4} \Rightarrow k = 4$`
+    ],
+    pista: t`Para racionalizar, multiplica numerador y denominador por $\sqrt{3}$. En el último apartado escribe todo como potencia de 2: $16 = 2^{4}$ y $\sqrt[4]{a} = a^{1/4}$.`
+  },
+  {
+    codigo: "NA-10", subtema: "1.10", nivel: "HL", paper: 1, dificultad: "dificil",
+    enunciado: t`Simplifica las siguientes expresiones. Escribe la respuesta final sin fracciones algebraicas (usa exponentes negativos cuando sea necesario).`,
+    partes: [
+      { texto: t`$\dfrac{(5a^{-2}b^{3})(-4a^{5}b^{-1})}{10ab^{4}}$`, puntos: 3 },
+      { texto: t`$(3m^{2}n^{-1})^{-2}\,(9m^{-1}n^{2})^{3}$`, puntos: 3 },
+      { texto: t`$\left(\dfrac{8x^{6}}{27y^{-3}}\right)^{2/3}$`, puntos: 3 }
+    ],
+    solucion: [
+      t`Numerador: $-20a^{3}b^{2}$. Entonces $\dfrac{-20a^{3}b^{2}}{10ab^{4}} = -2a^{2}b^{-2}$`,
+      t`$3^{-2}m^{-4}n^{2} \cdot 729m^{-3}n^{6} = 81m^{-7}n^{8}$`,
+      t`$\dfrac{8^{2/3}x^{4}}{27^{2/3}y^{-2}} = \dfrac{4x^{4}}{9y^{-2}} = \dfrac{4}{9}x^{4}y^{2}$`
+    ],
+    pista: t`Trabaja por separado coeficientes, potencias de la primera letra y potencias de la segunda. Recuerda $(x^{m})^{n} = x^{mn}$ y $x^{-n} = \frac{1}{x^{n}}$.`
+  },
+  {
+    codigo: "NA-11", subtema: "1.11", nivel: "HL", paper: 1, dificultad: "media",
+    enunciado: t`Considera la progresión geométrica $24,\ 18,\ 13.5,\ \dots$`,
+    partes: [
+      { texto: t`Halla la razón común $r$.`, puntos: 1 },
+      { texto: t`Explica por qué existe la suma de infinitos términos.`, puntos: 1 },
+      { texto: t`Halla la suma de infinitos términos.`, puntos: 2 },
+      { texto: t`Halla el menor valor de $n$ para el cual $S_n > 95$.`, puntos: 3 }
+    ],
+    solucion: [
+      t`$r = \dfrac{18}{24} = 0.75$`,
+      t`Porque $|r| = 0.75 < 1$.`,
+      t`$S_\infty = \dfrac{24}{1 - 0.75} = 96$`,
+      t`$96(1 - 0.75^{n}) > 95 \Rightarrow 0.75^{n} < \dfrac{1}{96} \Rightarrow n > 15.9$. Por tanto $n = 16$.`
+    ],
+    pista: t`$S_\infty = \frac{u_1}{1 - r}$ solo existe si $|r| < 1$. Para el último apartado, usa $S_n = \frac{u_1(1 - r^{n})}{1 - r}$ y una tabla en la calculadora.`
+  },
+  {
+    codigo: "NA-12", subtema: "1.11", nivel: "HL", paper: 2, dificultad: "dificil",
+    enunciado: t`Se deja caer una pelota desde una altura de $8$ m. Después de cada bote, alcanza el $60\%$ de la altura anterior.`,
+    partes: [
+      { texto: t`Halla la altura que alcanza la pelota después del tercer bote.`, puntos: 2 },
+      { texto: t`Halla la distancia vertical total que recorre la pelota hasta detenerse.`, puntos: 4 }
+    ],
+    solucion: [
+      t`$8(0.6)^{3} = 1.728$ m`,
+      t`Bajada inicial: $8$ m. Cada bote sube y baja: $2 \times \dfrac{8(0.6)}{1 - 0.6} = 2 \times 12 = 24$ m. Total $= 8 + 24 = 32$ m.`
+    ],
+    pista: t`Después de la primera caída, cada altura se recorre dos veces (subida y bajada). Las alturas de los botes forman una progresión geométrica infinita con $u_1 = 4.8$ y $r = 0.6$.`
+  },
+  {
+    codigo: "NA-13", subtema: "1.12", nivel: "HL", paper: 1, dificultad: "facil",
+    enunciado: t`Sean $z_1 = 3 - 2i$ y $z_2 = 1 + 4i$.`,
+    partes: [
+      { texto: t`Halla $z_1 + z_2$.`, puntos: 1 },
+      { texto: t`Halla $z_1 z_2$ en la forma $a + bi$.`, puntos: 2 },
+      { texto: t`Halla $\dfrac{z_1}{z_2}$ en la forma $a + bi$.`, puntos: 3 },
+      { texto: t`Resuelve la ecuación $z^{2} + 4z + 13 = 0$.`, puntos: 2 }
+    ],
+    solucion: [
+      t`$4 + 2i$`,
+      t`$3 + 12i - 2i - 8i^{2} = 11 + 10i$`,
+      t`$\dfrac{(3 - 2i)(1 - 4i)}{(1 + 4i)(1 - 4i)} = \dfrac{-5 - 14i}{17} = -\dfrac{5}{17} - \dfrac{14}{17}i$`,
+      t`$z = \dfrac{-4 \pm \sqrt{16 - 52}}{2} = \dfrac{-4 \pm 6i}{2} = -2 \pm 3i$`
+    ],
+    pista: t`Recuerda que $i^{2} = -1$. Para dividir, multiplica numerador y denominador por el conjugado del denominador, $1 - 4i$.`
+  },
+  {
+    codigo: "NA-14", subtema: "1.13", nivel: "HL", paper: 2, dificultad: "dificil",
+    enunciado: t`En un circuito de corriente alterna, dos voltajes se representan con los números complejos $V_1 = 10e^{i0}$ y $V_2 = 10e^{i\pi/3}$.`,
+    partes: [
+      { texto: t`Escribe $V_2$ en la forma $a + bi$.`, puntos: 2 },
+      { texto: t`Halla el voltaje total $V = V_1 + V_2$ en la forma $a + bi$.`, puntos: 1 },
+      { texto: t`Halla la amplitud $|V|$ y la fase $\arg V$ del voltaje total.`, puntos: 3 }
+    ],
+    solucion: [
+      t`$V_2 = 10\left(\cos\dfrac{\pi}{3} + i\sin\dfrac{\pi}{3}\right) = 5 + 5\sqrt{3}\,i$`,
+      t`$V = 15 + 5\sqrt{3}\,i$`,
+      t`$|V| = \sqrt{225 + 75} = 10\sqrt{3} \approx 17.3$; $\;\arg V = \arctan\dfrac{5\sqrt{3}}{15} = \dfrac{\pi}{6}$`
+    ],
+    pista: t`$re^{i\theta} = r(\cos\theta + i\sin\theta)$. Suma partes reales e imaginarias por separado y luego vuelve a la forma polar.`
+  },
+  {
+    codigo: "NA-15", subtema: "1.14", nivel: "HL", paper: 1, dificultad: "media",
+    enunciado: t`Una tienda vende camisetas a $c$ dólares y gorras a $g$ dólares. Ana paga 61 dólares por 3 camisetas y 2 gorras. Luis paga 47 dólares por 1 camiseta y 4 gorras.`,
+    partes: [
+      { texto: t`Escribe esta información como una ecuación matricial $A\mathbf{x} = \mathbf{b}$.`, puntos: 2 },
+      { texto: t`Halla $A^{-1}$.`, puntos: 2 },
+      { texto: t`Halla el precio de una camiseta y el de una gorra.`, puntos: 2 }
+    ],
+    solucion: [
+      t`$\begin{pmatrix} 3 & 2 \\ 1 & 4 \end{pmatrix}\begin{pmatrix} c \\ g \end{pmatrix} = \begin{pmatrix} 61 \\ 47 \end{pmatrix}$`,
+      t`$\det A = 10$, $\;A^{-1} = \dfrac{1}{10}\begin{pmatrix} 4 & -2 \\ -1 & 3 \end{pmatrix}$`,
+      t`$\begin{pmatrix} c \\ g \end{pmatrix} = \dfrac{1}{10}\begin{pmatrix} 4 & -2 \\ -1 & 3 \end{pmatrix}\begin{pmatrix} 61 \\ 47 \end{pmatrix} = \begin{pmatrix} 15 \\ 8 \end{pmatrix}$: camiseta 15 USD, gorra 8 USD.`
+    ],
+    pista: t`Cada fila de $A$ son las cantidades que compra una persona. Luego $\mathbf{x} = A^{-1}\mathbf{b}$.`
+  },
+  {
+    codigo: "NA-16", subtema: "1.15", nivel: "HL", paper: 2, dificultad: "dificil",
+    enunciado: t`Dos compañías telefónicas, $X$ e $Y$, compiten por clientes. Cada año, el $80\%$ de los clientes de $X$ se queda en $X$ y el $30\%$ de los clientes de $Y$ se cambia a $X$. La matriz de transición es $M = \begin{pmatrix} 0.8 & 0.3 \\ 0.2 & 0.7 \end{pmatrix}$.`,
+    partes: [
+      { texto: t`Halla la ecuación característica de $M$ y sus autovalores.`, puntos: 3 },
+      { texto: t`Halla un autovector asociado a cada autovalor.`, puntos: 3 },
+      { texto: t`A largo plazo, ¿qué proporción de clientes tendrá cada compañía?`, puntos: 2 }
+    ],
+    solucion: [
+      t`$\lambda^{2} - 1.5\lambda + 0.5 = 0 \Rightarrow \lambda = 1$ y $\lambda = 0.5$`,
+      t`Para $\lambda = 1$: $\begin{pmatrix} 3 \\ 2 \end{pmatrix}$. Para $\lambda = 0.5$: $\begin{pmatrix} 1 \\ -1 \end{pmatrix}$.`,
+      t`El estado estable es proporcional a $\begin{pmatrix} 3 \\ 2 \end{pmatrix}$: $X$ tendrá el $60\%$ e $Y$ el $40\%$.`
+    ],
+    pista: t`La ecuación característica es $\det(M - \lambda I) = 0$. El estado a largo plazo es el autovector del autovalor $\lambda = 1$, escalado para que sus componentes sumen 1.`
+  },
+  {
+    codigo: "NA-17", subtema: "1.9", nivel: "HL", paper: 1, dificultad: "dificil",
+    enunciado: t`Preguntas sobre ecuaciones exponenciales y logarítmicas.`,
+    partes: [
+      { texto: t`Demuestra que la solución de $2^{x+1} = 5^{x}$ es $x = \dfrac{\ln 2}{\ln 2.5}$.`, puntos: 3 },
+      { texto: t`Halla el valor de $x$ con tres cifras significativas.`, puntos: 1 },
+      { texto: t`Resuelve $\log_{2} x + \log_{4} x = 6$.`, puntos: 3 }
+    ],
+    solucion: [
+      t`$(x + 1)\ln 2 = x\ln 5 \Rightarrow \ln 2 = x(\ln 5 - \ln 2) = x\ln 2.5 \Rightarrow x = \dfrac{\ln 2}{\ln 2.5}$`,
+      t`$x \approx 0.756$`,
+      t`$\log_{4} x = \dfrac{\log_{2} x}{2}$, así que $\dfrac{3}{2}\log_{2} x = 6 \Rightarrow \log_{2} x = 4 \Rightarrow x = 16$`
+    ],
+    pista: t`Aplica $\ln$ en ambos lados y usa $\ln a^{n} = n\ln a$. En el último apartado cambia de base: $\log_{4} x = \frac{\log_{2} x}{\log_{2} 4}$.`
+  },
+  {
+    codigo: "NA-18", subtema: "1.2", nivel: "SL", paper: 1, dificultad: "facil",
+    enunciado: t`Preguntas sobre notación sigma.`,
+    partes: [
+      { texto: t`Calcula $\displaystyle\sum_{k=1}^{20}(3k + 2)$.`, puntos: 2 },
+      { texto: t`Escribe la suma $5 + 9 + 13 + \dots + 81$ en notación sigma.`, puntos: 2 },
+      { texto: t`Halla el valor de la suma del apartado anterior.`, puntos: 2 }
+    ],
+    solucion: [
+      t`Es aritmética con $u_1 = 5$ y $u_{20} = 62$: $\dfrac{20}{2}(5 + 62) = 670$`,
+      t`$\displaystyle\sum_{k=1}^{20}(4k + 1)$`,
+      t`$\dfrac{20}{2}(5 + 81) = 860$`
+    ],
+    pista: t`Escribe los primeros términos para ver el patrón. El término general de una progresión aritmética es $u_1 + (k-1)d$.`
+  },
+  {
+    codigo: "NA-19", subtema: "1.2", nivel: "SL", paper: 2, dificultad: "media",
+    enunciado: t`En una progresión aritmética, el tercer término es $11$ y el octavo término es $31$.`,
+    partes: [
+      { texto: t`Halla la diferencia común y el primer término.`, puntos: 3 },
+      { texto: t`Demuestra que $S_n = n(2n + 1)$.`, puntos: 2 },
+      { texto: t`Halla el menor valor de $n$ para el cual $S_n > 500$.`, puntos: 2 }
+    ],
+    solucion: [
+      t`$5d = 31 - 11 = 20 \Rightarrow d = 4$; $\;u_1 = 11 - 2(4) = 3$`,
+      t`$S_n = \dfrac{n}{2}[2(3) + (n-1)4] = \dfrac{n}{2}(4n + 2) = n(2n + 1)$`,
+      t`$n(2n + 1) > 500 \Rightarrow n > 15.6$, así que $n = 16$ (pues $S_{15} = 465$ y $S_{16} = 528$).`
+    ],
+    pista: t`Plantea $u_1 + 2d = 11$ y $u_1 + 7d = 31$ y réstalas. Para el último apartado, usa la tabla de la calculadora.`
+  },
+  {
+    codigo: "NA-20", subtema: "1.3", nivel: "SL", paper: 1, dificultad: "media",
+    enunciado: t`En una progresión geométrica, $u_2 = 12$ y $u_5 = 96$.`,
+    partes: [
+      { texto: t`Halla la razón común.`, puntos: 2 },
+      { texto: t`Halla el primer término.`, puntos: 1 },
+      { texto: t`Halla la suma de los 10 primeros términos.`, puntos: 2 }
+    ],
+    solucion: [
+      t`$r^{3} = \dfrac{96}{12} = 8 \Rightarrow r = 2$`,
+      t`$u_1 = \dfrac{12}{2} = 6$`,
+      t`$S_{10} = \dfrac{6(2^{10} - 1)}{2 - 1} = 6138$`
+    ],
+    pista: t`$u_5 = u_2 \cdot r^{3}$. Después usa $S_n = \frac{u_1(r^{n} - 1)}{r - 1}$.`
+  },
+  {
+    codigo: "NA-21", subtema: "1.4", nivel: "SL", paper: 2, dificultad: "media",
+    enunciado: t`Un automóvil cuesta 24 000 USD y se deprecia un $15\%$ cada año.`,
+    partes: [
+      { texto: t`Calcula el valor del automóvil después de 4 años.`, puntos: 2 },
+      { texto: t`Halla después de cuántos años completos el valor será inferior a 10 000 USD por primera vez.`, puntos: 3 }
+    ],
+    solucion: [
+      t`$24\,000(0.85)^{4} \approx 12\,528.15$ USD`,
+      t`$24\,000(0.85)^{n} < 10\,000 \Rightarrow n > 5.39$, así que después de $6$ años.`
+    ],
+    pista: t`Depreciar un 15% equivale a multiplicar por $0.85$ cada año: $V = V_0(1 - \frac{r}{100})^{n}$.`
+  },
+  {
+    codigo: "NA-22", subtema: "1.5", nivel: "SL", paper: 1, dificultad: "media",
+    enunciado: t`Preguntas sobre exponentes y logaritmos.`,
+    partes: [
+      { texto: t`Resuelve $10^{x} = 250$, dando la respuesta con tres cifras significativas.`, puntos: 2 },
+      { texto: t`Calcula, sin usar calculadora, $\log_{2} 32 + \log_{10} 0.01$.`, puntos: 2 },
+      { texto: t`Una población crece según $P(t) = 500e^{0.04t}$, con $t$ en años. Halla cuánto tarda en duplicarse.`, puntos: 3 }
+    ],
+    solucion: [
+      t`$x = \log_{10} 250 \approx 2.40$`,
+      t`$5 + (-2) = 3$`,
+      t`$e^{0.04t} = 2 \Rightarrow t = \dfrac{\ln 2}{0.04} \approx 17.3$ años`
+    ],
+    pista: t`$a^{x} = b \Leftrightarrow x = \log_{a} b$. Para duplicar, iguala $P(t) = 1000$ y aplica $\ln$.`
+  },
+  {
+    codigo: "NA-23", subtema: "1.6", nivel: "SL", paper: 1, dificultad: "facil",
+    enunciado: t`Una caja tiene forma de prisma rectangular de dimensiones $12.4$ cm, $8.7$ cm y $5.2$ cm.`,
+    partes: [
+      { texto: t`Calcula el volumen exacto de la caja.`, puntos: 1 },
+      { texto: t`Escribe el volumen redondeado a tres cifras significativas.`, puntos: 1 },
+      { texto: t`Para estimar el volumen, Pedro redondea cada medida al entero más cercano. Halla su estimación.`, puntos: 1 },
+      { texto: t`Halla el porcentaje de error de la estimación de Pedro.`, puntos: 2 }
+    ],
+    solucion: [
+      t`$12.4 \times 8.7 \times 5.2 = 560.976$ cm$^{3}$`,
+      t`$561$ cm$^{3}$`,
+      t`$12 \times 9 \times 5 = 540$ cm$^{3}$`,
+      t`$\left|\dfrac{540 - 560.976}{560.976}\right| \times 100\% \approx 3.74\%$`
+    ],
+    pista: t`Porcentaje de error $= \left|\frac{v_A - v_E}{v_E}\right| \times 100\%$, donde $v_A$ es el valor aproximado y $v_E$ el exacto.`
+  },
+  {
+    codigo: "NA-24", subtema: "1.7", nivel: "SL", paper: 2, dificultad: "media",
+    enunciado: t`Carla pide un préstamo de 15 000 USD a una tasa de interés anual del $6\%$ compuesto mensualmente. Lo devolverá en 5 años con pagos mensuales iguales al final de cada mes.`,
+    partes: [
+      { texto: t`Calcula el pago mensual.`, puntos: 3 },
+      { texto: t`Calcula la cantidad total que pagará Carla.`, puntos: 1 },
+      { texto: t`Calcula el interés total pagado.`, puntos: 1 }
+    ],
+    solucion: [
+      t`Con el TVM: $N = 60$, $I\% = 6$, $PV = 15\,000$, $FV = 0$, $P/Y = C/Y = 12$ $\Rightarrow PMT \approx 289.99$ USD`,
+      t`$60 \times 289.99 = 17\,399.40$ USD`,
+      t`$17\,399.40 - 15\,000 = 2\,399.40$ USD`
+    ],
+    pista: t`Usa el solucionador financiero (TVM) de la calculadora: el préstamo es $PV$ positivo, el saldo final $FV = 0$ y busca $PMT$.`
+  },
+  {
+    codigo: "NA-25", subtema: "1.8", nivel: "SL", paper: 1, dificultad: "media",
+    enunciado: t`Usa la calculadora gráfica para resolver las siguientes ecuaciones.`,
+    partes: [
+      { texto: t`Resuelve el sistema $\begin{cases} x + y + z = 6 \\ 2x - y + 3z = 9 \\ x + 2y - z = 2 \end{cases}$`, puntos: 3 },
+      { texto: t`Resuelve la ecuación $2x^{3} - 3x^{2} - 11x + 6 = 0$.`, puntos: 3 }
+    ],
+    solucion: [
+      t`$x = 1,\ y = 2,\ z = 3$`,
+      t`$x = -2,\ x = \dfrac{1}{2},\ x = 3$`
+    ],
+    pista: t`Usa el solucionador de sistemas lineales (3 ecuaciones, 3 incógnitas) y el solucionador de polinomios de grado 3 de la calculadora. Comprueba sustituyendo.`
   },
 
   /* ===================== TEMA 2: FUNCIONES ===================== */

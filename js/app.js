@@ -176,12 +176,19 @@
   }
 
   /* ================= Acordeón de temas ================= */
+  // Orden del índice: primero NS (HL) y luego NM (SL); dentro de cada nivel,
+  // orden alfabético del código (1.10, 1.11, …, 1.9), como en el índice de referencia.
+  function ordenarIndice(subtemas) {
+    return [...subtemas].sort((a, b) =>
+      a.nivel === b.nivel ? a.codigo.localeCompare(b.codigo) : a.nivel === "HL" ? -1 : 1);
+  }
+
   function renderizarAcordeon() {
     $("#acordeon").innerHTML = Object.entries(TEMAS).map(([num, tema]) => {
       const n = Number(num);
       const delTema = preguntasDeTema(n);
 
-      const filas = tema.subtemas.map((s) => {
+      const filas = ordenarIndice(tema.subtemas).map((s) => {
         const lista = preguntasDeSubtema(s.codigo);
         const cuenta = lista.length
           ? `${hechas(lista)}/${lista.length}`
