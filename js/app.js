@@ -5,9 +5,7 @@
   const CLAVE_TEMA = "booz-tema";
   const CLAVE_MASTER = "booz-master";
   const LOGO_POR_DEFECTO = "img/logo.jpg";
-  const NOMBRE_NIVEL = { SL: "NM", HL: "NS" };
   const NOMBRE_DIFICULTAD = { facil: "Fácil", media: "Media", dificil: "Difícil" };
-  const TIPO_PRUEBA = { 1: "Respuesta corta", 2: "Respuesta larga", 3: "Respuesta larga" };
   const LETRAS_OPCION = "ABCDEFGHIJKLMNOP";
   const CIRCUNFERENCIA = 2 * Math.PI * 15;
   const SEPARADOR = `<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>`;
@@ -38,7 +36,7 @@
   let listaBase = [];
   let preguntasVisibles = [];
 
-  const filtros = { estado: "todas", paper: "", nivel: "", dificultad: "" };
+  const filtros = { estado: "todas", paper: "", dificultad: "" };
   const temasAbiertos = new Set();
   const progreso = cargarProgreso();
   const respuestas = cargar(CLAVE_RESPUESTAS, {});
@@ -68,6 +66,7 @@
     return {
       completadas: new Set(d.completadas || []),
       favoritas: new Set(d.favoritas || []),
+      tarjetas: new Set(d.tarjetas || []),
       puntos: d.puntos || {}
     };
   }
@@ -76,6 +75,7 @@
     guardar(CLAVE_PROGRESO, {
       completadas: [...progreso.completadas],
       favoritas: [...progreso.favoritas],
+      tarjetas: [...progreso.tarjetas],
       puntos: progreso.puntos
     });
   }
@@ -109,7 +109,7 @@
   const temasOrdenados = () => [...datos.temas].sort((a, b) => a.numero - b.numero);
   const buscarTema = (id) => datos.temas.find((t) => t.id === id);
   const buscarPregunta = (id) => datos.preguntas.find((p) => p.id === id);
-  const nombreSubtema = (s) => `${NOMBRE_NIVEL[s.nivel] || s.nivel} ${s.codigo}—${s.nombre}`;
+  const nombreSubtema = (s) => `${s.codigo} ${s.nombre}`;
   const preguntasDeSubtema = (id) => datos.preguntas.filter((p) => p.subtema === id);
 
   function buscarSubtema(id) {
@@ -120,11 +120,15 @@
     return null;
   }
 
-  // Orden del índice: primero NS (HL) y luego NM (SL); dentro de cada nivel,
-  // orden alfabético del código (1.10, 1.11, …, 1.9), como en el índice de referencia.
+  // Orden natural del número del subtema: 1.1, 1.2, …, 1.9, 1.10
   function ordenarIndice(subtemas) {
     return [...subtemas].sort((a, b) =>
-      a.nivel === b.nivel ? String(a.codigo).localeCompare(String(b.codigo)) : a.nivel === "HL" ? -1 : 1);
+      String(a.codigo).localeCompare(String(b.codigo), undefined, { numeric: true }));
+  }
+
+  function siguienteCodigo(tema) {
+    const mayor = Math.max(0, ...tema.subtemas.map((s) => Number(String(s.codigo).split(".")[1]) || 0));
+    return `${tema.numero}.${mayor + 1}`;
   }
 
   function preguntasDeTema(tema) {
@@ -180,8 +184,14 @@
       t.id ??= uid("t");
       t.numero = Number(t.numero) || 0;
       t.subtemas = Array.isArray(t.subtemas) ? t.subtemas : [];
-      t.subtemas.forEach((s) => { s.id ??= uid("s"); s.nivel = s.nivel === "HL" ? "HL" : "SL"; });
+      t.subtemas.forEach((s) => { s.id ??= uid("s"); });
     });
+    ["apuntes", "tarjetas", "formularios", "examenes"].forEach((coleccion) => {
+      d[coleccion] = Array.isArray(d[coleccion]) ? d[coleccion] : [];
+      d[coleccion].forEach((x) => { x.id ??= uid(coleccion[0]); });
+    });
+    d.formularios.forEach((f) => { f.entradas = Array.isArray(f.entradas) ? f.entradas : []; });
+    d.examenes.forEach((ex) => { ex.preguntas = Array.isArray(ex.preguntas) ? ex.preguntas : []; });
     d.preguntas.forEach((p) => {
       p.id ??= uid("q");
       p.partes = Array.isArray(p.partes) && p.partes.length ? p.partes : [{ tipo: "abierta", texto: "", puntos: 1, solucion: "" }];
@@ -270,8 +280,18 @@
     el.classList.toggle("error", error);
   }
 
+  // Quita referencias a temas o preguntas que ya no existen
+  function limpiarReferencias() {
+    const preguntas = new Set(datos.preguntas.map((p) => p.id));
+    datos.examenes.forEach((ex) => { ex.preguntas = ex.preguntas.filter((id) => preguntas.has(id)); });
+    const temas = new Set(datos.temas.map((t) => t.id));
+    ["apuntes", "tarjetas", "formularios"].forEach((coleccion) =>
+      datos[coleccion].forEach((x) => { if (x.tema && !temas.has(x.tema)) x.tema = ""; }));
+  }
+
   // Tras cualquier modificación: se redibuja todo y se guarda en Supabase
   function aplicarCambios(mensaje) {
+    limpiarReferencias();
     renderizarTodo();
     publicar(mensaje);
   }
@@ -310,14 +330,21 @@
     const [, tipo, ...resto] = decodeURIComponent(location.hash).split("/");
     const valor = resto.join("/");
 
+    if (tipo !== "examen") detenerReloj();
+    $("#cabeceraExamen").classList.add("oculto");
+    $("#vistaPreguntas .filtros").classList.remove("oculto");
+    $("#accionesPreguntas").classList.remove("oculto");
+
     if (tipo === "s" && buscarSubtema(valor)) return vistaSubtema(valor, mantenerScroll);
     if (tipo === "t" && buscarTema(valor)) return vistaTema(valor, mantenerScroll);
+    if (tipo === "examen" && datos.examenes.some((ex) => ex.id === valor)) return vistaExamen(valor, mantenerScroll);
+    if (SECCIONES[tipo]) return vistaSeccion(tipo, mantenerScroll);
     if (tipo === "pronto" && valor) return vistaProximamente(valor);
     vistaTemas(mantenerScroll);
   }
 
   function mostrar(idVista, seccion, mantenerScroll) {
-    ["vistaTemas", "vistaPreguntas", "vistaProximamente"].forEach((id) =>
+    ["vistaTemas", "vistaPreguntas", "vistaSeccion", "vistaProximamente"].forEach((id) =>
       $(`#${id}`).classList.toggle("oculta", id !== idVista));
     $$("[data-seccion]").forEach((el) => el.classList.toggle("activo", el.dataset.seccion === seccion));
     if (!mantenerScroll) window.scrollTo({ top: 0 });
@@ -366,8 +393,9 @@
   }
 
   /* ================= Acordeón de temas ================= */
+  // Botón de administración con icono y texto corto (la primera palabra del título)
   const botonAdmin = (accion, id, icono, titulo, peligro = false) =>
-    `<button type="button" class="mini-btn ${peligro ? "peligro" : ""}" data-admin="${accion}" data-id="${escapar(id)}" title="${titulo}" aria-label="${titulo}">${icono}</button>`;
+    `<button type="button" class="mini-btn con-texto ${peligro ? "peligro" : ""}" data-admin="${accion}" data-id="${escapar(id)}" title="${titulo}">${icono}<span>${titulo.split(" ")[0]}</span></button>`;
 
   function renderizarAcordeon() {
     const temas = temasOrdenados();
@@ -447,7 +475,6 @@
   /* ================= Lista de preguntas ================= */
   function pasaFiltros(p) {
     if (filtros.paper && String(p.paper) !== filtros.paper) return false;
-    if (filtros.nivel && p.nivel !== filtros.nivel) return false;
     if (filtros.dificultad && p.dificultad !== filtros.dificultad) return false;
     if (filtros.estado === "pendientes" && progreso.completadas.has(p.id)) return false;
     if (filtros.estado === "completadas" && !progreso.completadas.has(p.id)) return false;
@@ -457,7 +484,7 @@
 
   function renderizarPreguntas(lista = listaBase) {
     listaBase = lista;
-    preguntasVisibles = lista.filter(pasaFiltros);
+    preguntasVisibles = ruta.tipo === "examen" ? lista : lista.filter(pasaFiltros);
     const contenedor = $("#listaPreguntas");
 
     if (!lista.length) {
@@ -575,7 +602,7 @@
           <div>${texto(parte.texto)}</div>
           <span class="parte-puntos">[${parte.puntos}]</span>
         </div>
-        ${graficoHtml(parte.grafico, vistaPrevia ? null : `${p.id}|${i}`)}
+        ${graficoHtml(parte.grafico, vistaPrevia ? null : `q|${p.id}|${i}`)}
         ${parte.tipo === "multiple" ? parteMultipleHtml(p, parte, i) : vistaPrevia ? "" : parteAbiertaHtml(p, parte, i)}
       </li>`).join("");
 
@@ -588,11 +615,11 @@
 
     const admin = vistaPrevia ? "" : `
       <div class="pregunta-admin solo-master">
-        <span class="etiqueta-admin">ID: ${escapar(p.id)}</span>
+        <span class="etiqueta-admin">Opciones de esta pregunta:</span>
         ${botonAdmin("editar-pregunta", p.id, `${ICONOS.editar}`, "Editar pregunta")}
         ${botonAdmin("duplicar-pregunta", p.id, ICONOS.duplicar, "Duplicar pregunta")}
-        ${botonAdmin("subir-pregunta", p.id, ICONOS.arriba, "Mover arriba")}
-        ${botonAdmin("bajar-pregunta", p.id, ICONOS.abajo, "Mover abajo")}
+        ${botonAdmin("subir-pregunta", p.id, ICONOS.arriba, "Subir pregunta")}
+        ${botonAdmin("bajar-pregunta", p.id, ICONOS.abajo, "Bajar pregunta")}
         ${botonAdmin("borrar-pregunta", p.id, ICONOS.borrar, "Eliminar pregunta", true)}
       </div>`;
 
@@ -601,10 +628,9 @@
         ${admin}
         <header class="pregunta-head">
           <h3>Pregunta ${numero}</h3>
-          <span class="chip">${escapar(p.nivel)}</span>
-          <span class="chip">Prueba ${escapar(p.paper)}</span>
-          <span class="chip">${TIPO_PRUEBA[p.paper] || ""}</span>
           <span class="chip ${escapar(p.dificultad)}">${NOMBRE_DIFICULTAD[p.dificultad] || ""}</span>
+          ${p.paper ? `<span class="chip">Prueba ${escapar(p.paper)}</span>` : ""}
+          <span class="chip">${puntosTotales(p)} ${puntosTotales(p) === 1 ? "punto" : "puntos"}</span>
           ${puntajeHtml(p)}
           <div class="head-acciones">
             <button class="btn-redondo check ${hecha ? "on" : ""}" data-accion="hecha" title="Marcar como completada" aria-pressed="${hecha}">${ICONOS.check}</button>
@@ -615,7 +641,7 @@
         </header>
         <p class="intro">${texto(p.enunciado)}</p>
         ${imagen ? `<img class="imagen-enunciado" src="${escapar(imagen)}" alt="Imagen del enunciado">` : ""}
-        ${graficoHtml(p.grafico, vistaPrevia ? null : `${p.id}|q`)}
+        ${graficoHtml(p.grafico, vistaPrevia ? null : `q|${p.id}|q`)}
         <ol class="partes">${partes}</ol>
         <div class="solucion-completa">
           <h4>Solución completa (${puntosTotales(p)} puntos)</h4>
@@ -930,6 +956,589 @@
     if (e.key === "Escape" && !$("dialog[open]")) cerrarExpandida();
   });
 
+  /* ================= Secciones: apuntes, tarjetas, fórmulas y exámenes ================= */
+  const SECCIONES = {
+    todo: { titulo: "Todo el contenido" },
+    apuntes: {
+      titulo: "Apuntes", tipo: "apunte", coleccion: "apuntes", nuevo: "+ Nuevo apunte",
+      ayuda: "Explicaciones de teoría con fórmulas, imágenes y gráficos."
+    },
+    tarjetas: {
+      titulo: "Tarjetas de memoria", tipo: "tarjeta", coleccion: "tarjetas", nuevo: "+ Nueva tarjeta",
+      ayuda: "Tarjetas de repaso: la pregunta por delante y la respuesta por detrás."
+    },
+    formulas: {
+      titulo: "Hojas de fórmulas", tipo: "formulario", coleccion: "formularios", nuevo: "+ Nueva hoja de fórmulas",
+      ayuda: "Resúmenes con las fórmulas más importantes de cada tema."
+    },
+    examenes: {
+      titulo: "Exámenes de práctica", tipo: "examen", coleccion: "examenes", nuevo: "+ Nuevo examen",
+      ayuda: "Junta preguntas del banco en un examen con tiempo límite."
+    }
+  };
+  const filtroTemaSeccion = {};
+  const esMaster = () => document.body.classList.contains("master");
+  const parrafos = (s) => String(s ?? "").split(/\n\s*\n/).filter((p) => p.trim())
+    .map((p) => `<p>${texto(p.trim())}</p>`).join("");
+  const filtrarPorTema = (lista, clave) =>
+    filtroTemaSeccion[clave] ? lista.filter((x) => x.tema === filtroTemaSeccion[clave]) : lista;
+
+  function chipTema(id) {
+    const t = buscarTema(id);
+    return t
+      ? `<span class="chip-tema" style="background:${colorValido(t.color) || "#4f46e5"}">${t.numero}. ${escapar(t.nombre)}</span>`
+      : `<span class="chip-tema general">General</span>`;
+  }
+
+  const botonesContenido = (tipo, id) => `
+    <span class="admin-btns solo-master">
+      <button type="button" class="mini-btn con-texto" data-editar-contenido="${tipo}" data-id="${escapar(id)}">${ICONOS.editar}<span>Editar</span></button>
+      <button type="button" class="mini-btn con-texto peligro" data-borrar-contenido="${tipo}" data-id="${escapar(id)}">${ICONOS.borrar}<span>Eliminar</span></button>
+    </span>`;
+
+  const vacioSeccion = (titulo) => `
+    <div class="vacio">
+      <h3>${titulo}</h3>
+      <p>${esMaster() ? "Pulsa el botón de arriba para crear el primero." : "Vuelve pronto: aquí aparecerá contenido nuevo."}</p>
+    </div>`;
+
+  function vistaSeccion(clave, mantenerScroll) {
+    ruta = { tipo: clave, id: null };
+    const s = SECCIONES[clave];
+    pintarCabecera(s.titulo, s.titulo);
+
+    $("#accionesSeccion").innerHTML = s.tipo
+      ? `<button type="button" class="btn-agregar" data-nuevo="${s.tipo}">${s.nuevo}</button><span class="texto-suave">${s.ayuda}</span>`
+      : "";
+
+    const conFiltro = ["apuntes", "tarjetas", "formulas"].includes(clave) && datos.temas.length;
+    $("#filtroTemaSeccion").innerHTML = conFiltro ? `
+      <label class="campo">
+        <span>Tema</span>
+        <select data-seccion-filtro="${clave}">
+          <option value="">Todos los temas</option>
+          ${temasOrdenados().map((t) => `<option value="${escapar(t.id)}" ${filtroTemaSeccion[clave] === t.id ? "selected" : ""}>${t.numero}. ${escapar(t.nombre)}</option>`).join("")}
+        </select>
+      </label>` : "";
+
+    const render = { todo: renderTodo, apuntes: renderApuntes, tarjetas: renderTarjetas, formulas: renderFormulas, examenes: renderExamenes }[clave];
+    const contenedor = $("#contenidoSeccion");
+    contenedor.innerHTML = render();
+    renderizarMatematicas(contenedor);
+    mostrar("vistaSeccion", clave, mantenerScroll);
+    prepararGraficos();
+  }
+
+  function renderTodo() {
+    const secciones = [
+      { href: "#/", icono: "❓", titulo: "Banco de preguntas", n: datos.preguntas.length, texto: "Practica pregunta por pregunta, tema por tema." },
+      { href: "#/apuntes", icono: "📘", titulo: "Apuntes", n: datos.apuntes.length, texto: SECCIONES.apuntes.ayuda },
+      { href: "#/tarjetas", icono: "🃏", titulo: "Tarjetas de memoria", n: datos.tarjetas.length, texto: SECCIONES.tarjetas.ayuda },
+      { href: "#/formulas", icono: "📐", titulo: "Hojas de fórmulas", n: datos.formularios.length, texto: SECCIONES.formulas.ayuda },
+      { href: "#/examenes", icono: "📝", titulo: "Exámenes de práctica", n: datos.examenes.length, texto: SECCIONES.examenes.ayuda }
+    ];
+    return `<div class="resumen-secciones">${secciones.map((s) => `
+      <a class="resumen-tarjeta" href="${s.href}">
+        <span class="resumen-icono">${s.icono}</span>
+        <strong>${s.titulo}</strong>
+        <span class="resumen-n">${s.n}</span>
+        <span class="texto-suave">${s.texto}</span>
+      </a>`).join("")}</div>`;
+  }
+
+  function renderApuntes() {
+    const lista = filtrarPorTema(datos.apuntes, "apuntes");
+    if (!lista.length) return vacioSeccion("Aún no hay apuntes");
+    return lista.map((a) => `
+      <article class="contenido-tarjeta">
+        <header class="contenido-cabecera">
+          ${chipTema(a.tema)}
+          <h3>${escapar(a.titulo)}</h3>
+          ${botonesContenido("apunte", a.id)}
+        </header>
+        <div class="apunte-texto">${parrafos(a.contenido)}</div>
+        ${urlSegura(a.imagen) ? `<img class="imagen-enunciado" src="${escapar(urlSegura(a.imagen))}" alt="Imagen del apunte">` : ""}
+        ${graficoHtml(a.grafico, `a|${a.id}`)}
+      </article>`).join("");
+  }
+
+  function renderTarjetas() {
+    const lista = filtrarPorTema(datos.tarjetas, "tarjetas");
+    if (!lista.length) return vacioSeccion("Aún no hay tarjetas de memoria");
+    const sabidas = lista.filter((t) => progreso.tarjetas.has(t.id)).length;
+    return `
+      <p class="progreso-tarjetas">Te sabes <strong>${sabidas}</strong> de <strong>${lista.length}</strong> tarjetas. Toca una tarjeta para darle la vuelta.</p>
+      <div class="flashcards">
+        ${lista.map((t) => {
+          const sabida = progreso.tarjetas.has(t.id);
+          return `
+          <div class="flashcard ${sabida ? "sabida" : ""}" data-id="${escapar(t.id)}">
+            <div class="flashcard-cara" data-voltear role="button" tabindex="0" aria-label="Dar la vuelta a la tarjeta">
+              <span class="flashcard-etiqueta frente">Pregunta · toca para ver la respuesta</span>
+              <span class="flashcard-etiqueta reverso">Respuesta</span>
+              <div class="flashcard-texto frente">${texto(t.frente)}</div>
+              <div class="flashcard-texto reverso">${texto(t.reverso)}</div>
+            </div>
+            <div class="flashcard-pie">
+              ${chipTema(t.tema)}
+              <button type="button" class="link-btn" data-sabida>${sabida ? "✓ Ya me la sé" : "Marcar como aprendida"}</button>
+            </div>
+            ${botonesContenido("tarjeta", t.id)}
+          </div>`;
+        }).join("")}
+      </div>`;
+  }
+
+  function renderFormulas() {
+    const lista = filtrarPorTema(datos.formularios, "formulas");
+    if (!lista.length) return vacioSeccion("Aún no hay hojas de fórmulas");
+    return lista.map((f) => `
+      <article class="contenido-tarjeta">
+        <header class="contenido-cabecera">
+          ${chipTema(f.tema)}
+          <h3>${escapar(f.titulo)}</h3>
+          ${botonesContenido("formulario", f.id)}
+        </header>
+        <div class="tabla-formulas">
+          ${f.entradas.map((e) => `
+            <div class="fila-formula">
+              <div class="f-nombre">${texto(e.nombre)}</div>
+              <div class="f-formula">${texto(e.formula)}</div>
+              ${e.nota ? `<div class="f-nota">${texto(e.nota)}</div>` : ""}
+            </div>`).join("")}
+        </div>
+      </article>`).join("");
+  }
+
+  function renderExamenes() {
+    if (!datos.examenes.length) return vacioSeccion("Aún no hay exámenes de práctica");
+    return datos.examenes.map((ex) => {
+      const preguntas = ex.preguntas.map(buscarPregunta).filter(Boolean);
+      const total = preguntas.reduce((s, p) => s + puntosTotales(p), 0);
+      const minutos = Number(ex.minutos);
+      return `
+        <article class="contenido-tarjeta examen-item">
+          <header class="contenido-cabecera">
+            <h3>${escapar(ex.titulo)}</h3>
+            ${botonesContenido("examen", ex.id)}
+          </header>
+          ${ex.descripcion ? `<p>${texto(ex.descripcion)}</p>` : ""}
+          <p class="examen-meta">📝 ${preguntas.length} preguntas · ⭐ ${total} puntos · ⏱ ${minutos ? `${minutos} minutos` : "sin límite de tiempo"}</p>
+          ${preguntas.length ? `<a class="btn primario" href="#/examen/${encodeURIComponent(ex.id)}">Empezar examen</a>` : `<p class="texto-suave">Este examen aún no tiene preguntas.</p>`}
+        </article>`;
+    }).join("");
+  }
+
+  $("#vistaSeccion").addEventListener("click", (e) => {
+    const nuevo = e.target.closest("[data-nuevo]");
+    const editar = e.target.closest("[data-editar-contenido]");
+    const borrar = e.target.closest("[data-borrar-contenido]");
+    const voltear = e.target.closest("[data-voltear]");
+    const sabida = e.target.closest("[data-sabida]");
+    if (nuevo) return abrirEditorContenido(nuevo.dataset.nuevo);
+    if (editar) return abrirEditorContenido(editar.dataset.editarContenido, editar.dataset.id);
+    if (borrar) return borrarContenido(borrar.dataset.borrarContenido, borrar.dataset.id);
+    if (voltear) return voltear.closest(".flashcard").classList.toggle("volteada");
+    if (sabida) {
+      const id = sabida.closest(".flashcard").dataset.id;
+      progreso.tarjetas.has(id) ? progreso.tarjetas.delete(id) : progreso.tarjetas.add(id);
+      guardarProgreso();
+      vistaSeccion("tarjetas", true);
+    }
+  });
+
+  $("#vistaSeccion").addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-voltear]")) {
+      e.preventDefault();
+      e.target.closest(".flashcard").classList.toggle("volteada");
+    }
+  });
+
+  $("#vistaSeccion").addEventListener("change", (e) => {
+    const clave = e.target.dataset.seccionFiltro;
+    if (!clave) return;
+    filtroTemaSeccion[clave] = e.target.value;
+    vistaSeccion(clave, true);
+  });
+
+  /* ----- Modo examen ----- */
+  const relojes = {}; // id del examen → momento de inicio (ms)
+  let intervaloReloj = null;
+
+  const tiempoAgotado = (ex) => Number(ex.minutos) > 0 && relojes[ex.id] &&
+    Date.now() >= relojes[ex.id] + Number(ex.minutos) * 60000;
+
+  function vistaExamen(id, mantenerScroll) {
+    ruta = { tipo: "examen", id };
+    const ex = datos.examenes.find((x) => x.id === id);
+    const preguntas = ex.preguntas.map(buscarPregunta).filter(Boolean);
+    const total = preguntas.reduce((s, p) => s + puntosTotales(p), 0);
+
+    pintarCabecera(ex.titulo, ex.titulo, "Examen de práctica");
+    $("#vistaPreguntas .filtros").classList.add("oculto");
+    $("#accionesPreguntas").classList.add("oculto");
+    const cabecera = $("#cabeceraExamen");
+    cabecera.classList.remove("oculto");
+    cabecera.innerHTML = `
+      ${ex.descripcion ? `<p>${texto(ex.descripcion)}</p>` : ""}
+      <div class="examen-barra">
+        <span class="reloj" id="relojExamen">${Number(ex.minutos) ? "⏱ --:--" : "⏱ Sin límite de tiempo"}</span>
+        <span>${preguntas.length} preguntas · ${total} puntos</span>
+        <button type="button" class="accion principal" id="btnTerminarExamen">Terminar y ver mi nota</button>
+        <button type="button" class="accion" id="btnReiniciarExamen">Empezar de nuevo</button>
+      </div>
+      <div class="resultado-examen oculto" id="resultadoExamen"></div>
+      <p class="texto-suave">Las preguntas con alternativas se corrigen solas. En las abiertas, compara tu respuesta con el esquema y usa «Autoevaluar».</p>`;
+    renderizarMatematicas(cabecera);
+
+    if (!relojes[id] || (!mantenerScroll && tiempoAgotado(ex))) relojes[id] = Date.now();
+    mostrar("vistaPreguntas", "examenes", mantenerScroll);
+    renderizarPreguntas(preguntas);
+    iniciarReloj(ex);
+  }
+
+  function iniciarReloj(ex) {
+    detenerReloj();
+    const minutos = Number(ex.minutos);
+    if (!minutos) return;
+    const actualizar = () => {
+      const el = $("#relojExamen");
+      const restante = Math.max(0, relojes[ex.id] + minutos * 60000 - Date.now());
+      if (el) {
+        const m = Math.floor(restante / 60000);
+        const s = Math.floor((restante % 60000) / 1000);
+        el.textContent = `⏱ Te quedan ${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        el.classList.toggle("urgente", restante < 60000);
+      }
+      if (restante === 0) {
+        detenerReloj();
+        aviso("¡Se acabó el tiempo!");
+        terminarExamen(ex);
+      }
+    };
+    actualizar();
+    intervaloReloj = setInterval(actualizar, 1000);
+  }
+
+  function detenerReloj() {
+    clearInterval(intervaloReloj);
+    intervaloReloj = null;
+  }
+
+  function terminarExamen(ex) {
+    detenerReloj();
+    const preguntas = ex.preguntas.map(buscarPregunta).filter(Boolean);
+    const total = preguntas.reduce((s, p) => s + puntosTotales(p), 0);
+    const obtenidos = preguntas.reduce((s, p) =>
+      s + Object.values(progreso.puntos[p.id] || {}).reduce((a, b) => a + b, 0), 0);
+    const pendientes = preguntas.reduce((n, p) =>
+      n + p.partes.filter((_, i) => progreso.puntos[p.id]?.[i] === undefined).length, 0);
+    const porcentaje = total ? Math.round((obtenidos / total) * 100) : 0;
+
+    const el = $("#resultadoExamen");
+    el.innerHTML = `
+      <strong>Tu nota: ${obtenidos} de ${total} puntos (${porcentaje}%)</strong>
+      ${pendientes ? `<span>Hay ${pendientes} apartados sin responder o sin autoevaluar: cuentan como 0.</span>` : ""}
+      <span>Debajo de cada pregunta ya puedes ver la solución completa.</span>`;
+    el.classList.remove("oculto");
+    $$("#listaPreguntas .solucion-completa").forEach((s) => s.classList.add("visible"));
+    $$("#listaPreguntas [data-accion='respuesta']").forEach((b) => { b.textContent = "Ocultar"; });
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function reiniciarExamen(ex) {
+    if (!confirm("¿Empezar el examen de nuevo? Se borrarán tus respuestas a estas preguntas.")) return;
+    ex.preguntas.forEach((id) => {
+      delete progreso.puntos[id];
+      delete respuestas[id];
+    });
+    guardarProgreso();
+    guardar(CLAVE_RESPUESTAS, respuestas);
+    relojes[ex.id] = Date.now();
+    vistaExamen(ex.id, false);
+  }
+
+  $("#cabeceraExamen").addEventListener("click", (e) => {
+    const ex = datos.examenes.find((x) => x.id === ruta.id);
+    if (!ex) return;
+    if (e.target.closest("#btnTerminarExamen")) terminarExamen(ex);
+    if (e.target.closest("#btnReiniciarExamen")) reiniciarExamen(ex);
+  });
+
+  /* ----- Editor de apuntes, tarjetas, hojas de fórmulas y exámenes ----- */
+  const TIPOS_CONTENIDO = {
+    apunte: {
+      coleccion: "apuntes", prefijo: "a", titulos: ["Nuevo apunte", "Editar apunte"], campos: [
+        { clave: "titulo", etiqueta: "Título", tipo: "texto", requerido: true, ejemplo: "¿Qué es una ecuación?" },
+        { clave: "tema", etiqueta: "Tema", tipo: "tema" },
+        {
+          clave: "contenido", etiqueta: "Explicación", tipo: "mate", filas: 10, requerido: true,
+          ayuda: "Deja una línea en blanco para empezar un párrafo nuevo. Usa «ƒ(x) Fórmula» para escribir ecuaciones."
+        },
+        { clave: "imagen", etiqueta: "Imagen (opcional)", tipo: "imagen" },
+        { clave: "grafico", etiqueta: "Gráfico GeoGebra (opcional)", tipo: "grafico" }
+      ]
+    },
+    tarjeta: {
+      coleccion: "tarjetas", prefijo: "c", titulos: ["Nueva tarjeta", "Editar tarjeta"], campos: [
+        { clave: "tema", etiqueta: "Tema", tipo: "tema" },
+        { clave: "frente", etiqueta: "Frente: la pregunta", tipo: "mate", filas: 3, requerido: true, ejemplo: "¿Cuánto es $2^3$?" },
+        { clave: "reverso", etiqueta: "Reverso: la respuesta", tipo: "mate", filas: 3, requerido: true, ejemplo: "$2^3 = 8$" }
+      ]
+    },
+    formulario: {
+      coleccion: "formularios", prefijo: "f", titulos: ["Nueva hoja de fórmulas", "Editar hoja de fórmulas"], campos: [
+        { clave: "titulo", etiqueta: "Título", tipo: "texto", requerido: true, ejemplo: "Fórmulas de geometría" },
+        { clave: "tema", etiqueta: "Tema", tipo: "tema" },
+        { clave: "entradas", etiqueta: "Fórmulas", tipo: "entradas" }
+      ]
+    },
+    examen: {
+      coleccion: "examenes", prefijo: "e", titulos: ["Nuevo examen", "Editar examen"], campos: [
+        { clave: "titulo", etiqueta: "Título", tipo: "texto", requerido: true, ejemplo: "Examen de práctica 1" },
+        { clave: "descripcion", etiqueta: "Descripción (opcional)", tipo: "area", filas: 2 },
+        { clave: "minutos", etiqueta: "Tiempo en minutos (0 = sin límite)", tipo: "numero" },
+        { clave: "preguntas", etiqueta: "Marca las preguntas que tendrá el examen", tipo: "preguntas" }
+      ]
+    }
+  };
+
+  const dlgContenido = $("#dlgContenido");
+  const contenido = { tipo: null, id: null, valores: null };
+  const campoDe = (clave) => TIPOS_CONTENIDO[contenido.tipo].campos.find((c) => c.clave === clave);
+
+  function valoresIniciales(tipo) {
+    const tema = filtroTemaSeccion[ruta.tipo] || "";
+    switch (tipo) {
+      case "apunte": return { titulo: "", tema, contenido: "", imagen: "", grafico: null };
+      case "tarjeta": return { tema, frente: "", reverso: "" };
+      case "formulario": return { titulo: "", tema, entradas: [{ nombre: "", formula: "", nota: "" }] };
+      default: return { titulo: "", descripcion: "", minutos: 30, preguntas: [] };
+    }
+  }
+
+  function abrirEditorContenido(tipo, id = null) {
+    const def = TIPOS_CONTENIDO[tipo];
+    const existente = id ? datos[def.coleccion].find((x) => x.id === id) : null;
+    contenido.tipo = tipo;
+    contenido.id = existente ? id : null;
+    contenido.valores = existente ? clonar(existente) : valoresIniciales(tipo);
+    $("#tituloDlgContenido").textContent = def.titulos[existente ? 1 : 0];
+    $("#errorContenido").textContent = "";
+    $("#camposContenido").innerHTML = def.campos
+      .map((c) => `<div class="campo-contenido" data-contenedor="${c.clave}">${campoHtml(c)}</div>`).join("");
+    dlgContenido.showModal();
+    $("#camposContenido input[type='text'], #camposContenido textarea")?.focus();
+  }
+
+  function redibujarCampo(clave) {
+    $(`#camposContenido [data-contenedor="${clave}"]`).innerHTML = campoHtml(campoDe(clave));
+  }
+
+  const resumenPregunta = (p) => {
+    const sub = buscarSubtema(p.subtema)?.subtema;
+    const plano = p.enunciado.replace(/\$+/g, "").replace(/\\[a-zA-Z]+/g, " ").replace(/[{}\\]/g, "").replace(/\s+/g, " ").trim();
+    return `${sub ? `${sub.codigo} · ` : ""}${plano.slice(0, 90)}${plano.length > 90 ? "…" : ""}`;
+  };
+
+  function campoHtml(c) {
+    const v = contenido.valores[c.clave];
+    const ejemplo = c.ejemplo ? `placeholder="${escapar(`Ejemplo: ${c.ejemplo}`)}"` : "";
+    switch (c.tipo) {
+      case "texto":
+        return `<label class="form-campo"><span>${c.etiqueta}</span><input type="text" data-clave="${c.clave}" value="${escapar(v)}" ${ejemplo} maxlength="200"></label>`;
+      case "area":
+        return `<label class="form-campo"><span>${c.etiqueta}</span><textarea data-clave="${c.clave}" rows="${c.filas || 3}">${escapar(v)}</textarea></label>`;
+      case "numero":
+        return `<label class="form-campo"><span>${c.etiqueta}</span><input type="number" min="0" max="600" data-clave="${c.clave}" value="${Number(v) || 0}"></label>`;
+      case "mate":
+        return `
+          <div class="form-campo">
+            <span class="etiqueta-con-boton">${c.etiqueta}<button type="button" class="accion mini" data-formula-para="${c.clave}">ƒ(x) Fórmula</button></span>
+            <textarea data-clave="${c.clave}" rows="${c.filas || 3}" ${ejemplo}>${escapar(v)}</textarea>
+            ${c.ayuda ? `<small class="ayuda">${c.ayuda}</small>` : ""}
+          </div>`;
+      case "tema":
+        return `
+          <label class="form-campo"><span>${c.etiqueta}</span>
+            <select data-clave="${c.clave}">
+              <option value="">General (sin tema)</option>
+              ${temasOrdenados().map((t) => `<option value="${escapar(t.id)}" ${t.id === v ? "selected" : ""}>${t.numero}. ${escapar(t.nombre)}</option>`).join("")}
+            </select>
+          </label>`;
+      case "imagen": {
+        const url = urlSegura(v);
+        return `
+          <div class="form-campo"><span>${c.etiqueta}</span>
+            <div class="imagen-campo">
+              ${url ? `<img src="${escapar(url)}" alt="">` : ""}
+              <button type="button" class="accion" data-imagen-para="${c.clave}">${url ? "Cambiar imagen" : "Subir imagen"}</button>
+              ${url ? `<button type="button" class="accion" data-quitar-para="${c.clave}">Quitar</button>` : ""}
+            </div>
+          </div>`;
+      }
+      case "grafico": {
+        const png = urlSegura(v?.png);
+        return `
+          <div class="form-campo"><span>${c.etiqueta}</span>
+            <div class="imagen-campo">
+              ${png ? `<img src="${escapar(png)}" alt="">` : ""}
+              <button type="button" class="accion" data-grafico-para="${c.clave}">📈 ${v ? "Editar gráfico" : "Añadir gráfico"}</button>
+              ${v ? `<button type="button" class="accion" data-quitar-para="${c.clave}">Quitar</button>` : ""}
+            </div>
+          </div>`;
+      }
+      case "entradas":
+        return `
+          <div class="form-campo"><span>${c.etiqueta}</span>
+            <small class="ayuda">Cada fila es una fórmula: su nombre, la fórmula (pulsa ƒ(x) para escribirla) y una nota opcional.</small>
+            ${v.map((e, k) => `
+              <div class="entrada-editor" data-k="${k}">
+                <input type="text" data-entrada="nombre" value="${escapar(e.nombre)}" placeholder="Nombre, p. ej. Área del círculo">
+                <div class="entrada-formula">
+                  <input type="text" data-entrada="formula" value="${escapar(e.formula)}" placeholder="Fórmula">
+                  <button type="button" class="accion mini" data-formula-entrada="${k}">ƒ(x)</button>
+                </div>
+                <input type="text" data-entrada="nota" value="${escapar(e.nota)}" placeholder="Nota (opcional)">
+                <button type="button" class="mini-btn peligro" data-quitar-entrada="${k}" title="Quitar esta fórmula" ${v.length <= 1 ? "disabled" : ""}>✕</button>
+              </div>`).join("")}
+            <button type="button" class="accion" data-agregar-entrada>+ Añadir otra fórmula</button>
+          </div>`;
+      case "preguntas": {
+        if (!datos.preguntas.length) return `<p class="texto-suave">Primero crea preguntas en el banco de preguntas.</p>`;
+        const elegidas = new Set(v);
+        return `
+          <div class="form-campo"><span>${c.etiqueta} <small id="cuentaElegidas">(${elegidas.size} elegidas)</small></span>
+            <div class="lista-elegir">
+              ${temasOrdenados().map((t) => {
+                const ps = preguntasDeTema(t);
+                if (!ps.length) return "";
+                return `<p class="grupo-elegir">${t.numero}. ${escapar(t.nombre)}</p>` + ps.map((p) => `
+                  <label class="check-pregunta">
+                    <input type="checkbox" data-pregunta="${escapar(p.id)}" ${elegidas.has(p.id) ? "checked" : ""}>
+                    <span>${escapar(resumenPregunta(p))}</span>
+                  </label>`).join("");
+              }).join("")}
+            </div>
+          </div>`;
+      }
+      default:
+        return "";
+    }
+  }
+
+  $("#camposContenido").addEventListener("input", (e) => {
+    const v = contenido.valores;
+    const el = e.target;
+    if (el.dataset.clave) {
+      v[el.dataset.clave] = el.type === "number" ? Math.max(0, Number(el.value) || 0) : el.value;
+    } else if (el.dataset.entrada) {
+      v.entradas[Number(el.closest(".entrada-editor").dataset.k)][el.dataset.entrada] = el.value;
+    } else if (el.dataset.pregunta) {
+      const marcadas = new Set([...$$("#camposContenido [data-pregunta]:checked")].map((x) => x.dataset.pregunta));
+      // Se guardan en el orden del banco de preguntas
+      v.preguntas = temasOrdenados().flatMap(preguntasDeTema).map((p) => p.id).filter((id) => marcadas.has(id));
+      $("#cuentaElegidas").textContent = `(${v.preguntas.length} elegidas)`;
+    }
+  });
+
+  $("#camposContenido").addEventListener("click", (e) => {
+    const v = contenido.valores;
+    const formula = e.target.closest("[data-formula-para]");
+    const formulaEntrada = e.target.closest("[data-formula-entrada]");
+    const imagen = e.target.closest("[data-imagen-para]");
+    const quitar = e.target.closest("[data-quitar-para]");
+    const grafico = e.target.closest("[data-grafico-para]");
+    const quitarEntrada = e.target.closest("[data-quitar-entrada]");
+
+    if (formula) return abrirEditorMate($(`#camposContenido [data-clave="${formula.dataset.formulaPara}"]`));
+    if (formulaEntrada) {
+      return abrirEditorMate($(`#camposContenido .entrada-editor[data-k="${formulaEntrada.dataset.formulaEntrada}"] [data-entrada="formula"]`));
+    }
+    if (imagen) {
+      $("#inputImagenContenido").dataset.para = imagen.dataset.imagenPara;
+      return $("#inputImagenContenido").click();
+    }
+    if (quitar) {
+      const clave = quitar.dataset.quitarPara;
+      v[clave] = clave === "grafico" ? null : "";
+      return redibujarCampo(clave);
+    }
+    if (grafico) {
+      const clave = grafico.dataset.graficoPara;
+      return abrirEditorGrafico({ actual: v[clave], guardar: (g) => { v[clave] = g; redibujarCampo(clave); } });
+    }
+    if (e.target.closest("[data-agregar-entrada]")) {
+      v.entradas.push({ nombre: "", formula: "", nota: "" });
+      redibujarCampo("entradas");
+      $("#camposContenido .entrada-editor:last-of-type input").focus();
+      return;
+    }
+    if (quitarEntrada) {
+      v.entradas.splice(Number(quitarEntrada.dataset.quitarEntrada), 1);
+      redibujarCampo("entradas");
+    }
+  });
+
+  $("#inputImagenContenido").addEventListener("change", async (e) => {
+    const archivo = e.target.files[0];
+    const clave = e.target.dataset.para;
+    e.target.value = "";
+    if (!archivo) return;
+    aviso("Subiendo imagen…");
+    try {
+      contenido.valores[clave] = await subirImagen(archivo);
+      redibujarCampo(clave);
+      aviso("Imagen subida.");
+    } catch (err) {
+      aviso(`No se pudo subir la imagen: ${err.message}`);
+    }
+  });
+
+  function validarContenido(v) {
+    for (const c of TIPOS_CONTENIDO[contenido.tipo].campos) {
+      if (["texto", "area", "mate"].includes(c.tipo)) v[c.clave] = String(v[c.clave] ?? "").trim();
+      if (c.requerido && !v[c.clave]) return `Completa el campo «${c.etiqueta}».`;
+    }
+    if (contenido.tipo === "formulario") {
+      v.entradas = v.entradas
+        .map((e) => ({ nombre: e.nombre.trim(), formula: e.formula.trim(), nota: e.nota.trim() }))
+        .filter((e) => e.nombre || e.formula);
+      if (!v.entradas.length) {
+        v.entradas = [{ nombre: "", formula: "", nota: "" }];
+        redibujarCampo("entradas");
+        return "Añade al menos una fórmula.";
+      }
+    }
+    if (contenido.tipo === "examen" && !v.preguntas.length) return "Marca al menos una pregunta para el examen.";
+    return null;
+  }
+
+  $("#formContenido").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const def = TIPOS_CONTENIDO[contenido.tipo];
+    const v = contenido.valores;
+    const error = validarContenido(v);
+    $("#errorContenido").textContent = error || "";
+    if (error) return;
+
+    const coleccion = datos[def.coleccion];
+    if (contenido.id) {
+      coleccion[coleccion.findIndex((x) => x.id === contenido.id)] = { ...v, id: contenido.id };
+    } else {
+      coleccion.push({ ...v, id: uid(def.prefijo) });
+    }
+    dlgContenido.close();
+    aplicarCambios("Cambios guardados");
+  });
+
+  function borrarContenido(tipo, id) {
+    const def = TIPOS_CONTENIDO[tipo];
+    if (!confirm(`¿Eliminar este elemento de «${SECCIONES[Object.keys(SECCIONES).find((k) => SECCIONES[k].tipo === tipo)].titulo}»?\n\nPodrás recuperarlo desde Ajustes → Versiones anteriores.`)) return;
+    datos[def.coleccion] = datos[def.coleccion].filter((x) => x.id !== id);
+    aplicarCambios("Eliminado");
+  }
+
   /* ================= Modo MASTER ================= */
   function entrarMaster() {
     document.body.classList.add("master");
@@ -1050,19 +1659,24 @@
     $("#tituloDlgSubtema").textContent = s ? "Editar subtema" : "Nuevo subtema";
     $("#subtemaTema").innerHTML = temasOrdenados().map((t) =>
       `<option value="${escapar(t.id)}" ${t.id === temaActual ? "selected" : ""}>${t.numero}. ${escapar(t.nombre)}</option>`).join("");
-    $("#subtemaCodigo").value = s ? s.codigo : `${buscarTema(temaActual).numero}.`;
-    $("#subtemaNivel").value = s ? s.nivel : "SL";
+    $("#subtemaCodigo").value = s ? s.codigo : siguienteCodigo(buscarTema(temaActual));
+    $("#subtemaCodigo").dataset.manual = s ? "1" : "";
     $("#subtemaNombre").value = s ? s.nombre : "";
     $("#dlgSubtema").showModal();
-    $(s ? "#subtemaNombre" : "#subtemaCodigo").focus();
+    $("#subtemaNombre").focus();
   }
+
+  // Al cambiar de tema en un subtema nuevo, el número se recalcula solo
+  $("#subtemaTema").addEventListener("change", () => {
+    if (!$("#subtemaCodigo").dataset.manual) $("#subtemaCodigo").value = siguienteCodigo(buscarTema($("#subtemaTema").value));
+  });
+  $("#subtemaCodigo").addEventListener("input", () => { $("#subtemaCodigo").dataset.manual = "1"; });
 
   $("#formSubtema").addEventListener("submit", (e) => {
     e.preventDefault();
     const destino = buscarTema($("#subtemaTema").value);
     const valores = {
-      codigo: $("#subtemaCodigo").value.trim(),
-      nivel: $("#subtemaNivel").value,
+      codigo: $("#subtemaCodigo").value.trim() || siguienteCodigo(destino),
       nombre: $("#subtemaNombre").value.trim()
     };
     if (!destino || !valores.codigo || !valores.nombre) return;
@@ -1122,7 +1736,7 @@
     if (!subtemaId) return aviso("Primero crea un tema y un subtema.");
 
     const p = existente ? clonar(existente) : {
-      nivel: buscarSubtema(subtemaId).subtema.nivel, paper: 1, dificultad: "media",
+      paper: null, dificultad: "facil",
       enunciado: "", imagen: "", pista: "", partes: [parteVacia("abierta")]
     };
 
@@ -1134,8 +1748,7 @@
 
     $("#tituloDlgPregunta").textContent = existente ? `Editar pregunta (${id})` : "Nueva pregunta";
     $("#preguntaSubtema").innerHTML = opcionesSubtemas(subtemaId);
-    $("#preguntaNivel").value = p.nivel;
-    $("#preguntaPaper").value = String(p.paper);
+    $("#preguntaPaper").value = p.paper ? String(p.paper) : "";
     $("#preguntaDificultad").value = p.dificultad;
     $("#preguntaEnunciado").value = p.enunciado;
     $("#preguntaPista").value = p.pista || "";
@@ -1210,8 +1823,7 @@
     return {
       id: editor.id || "vista-previa",
       subtema: $("#preguntaSubtema").value,
-      nivel: $("#preguntaNivel").value,
-      paper: Number($("#preguntaPaper").value),
+      paper: Number($("#preguntaPaper").value) || null,
       dificultad: $("#preguntaDificultad").value,
       enunciado: $("#preguntaEnunciado").value.trim(),
       imagen: urlSegura(editor.imagen),
@@ -1291,7 +1903,14 @@
         parte.opciones.push("");
         break;
       case "grafico":
-        return abrirEditorGrafico({ parte: i });
+        return abrirEditorGrafico({
+          actual: parte.grafico,
+          guardar: (g) => {
+            parte.grafico = g;
+            renderizarPartesEditor();
+            actualizarVistaPreviaEditor();
+          }
+        });
       case "quitar-grafico":
         if (!confirm(`¿Quitar el gráfico del apartado ${i + 1}?`)) return;
         delete parte.grafico;
@@ -1315,7 +1934,7 @@
     $("#partesEditor .parte-editor:last-child textarea").focus();
   }));
 
-  ["#preguntaSubtema", "#preguntaNivel", "#preguntaPaper", "#preguntaDificultad", "#preguntaEnunciado", "#preguntaPista"]
+  ["#preguntaSubtema", "#preguntaPaper", "#preguntaDificultad", "#preguntaEnunciado", "#preguntaPista"]
     .forEach((sel) => $(sel).addEventListener("input", actualizarVistaPreviaEditor));
 
   $("#btnSubirImagenPregunta").addEventListener("click", () => $("#inputImagenPregunta").click());
@@ -1427,15 +2046,13 @@
 
   /* ----- Gráficos GeoGebra del editor ----- */
   const dlgGrafico = $("#dlgGrafico");
-  let graficoObjetivo = null; // { parte: null } = enunciado, { parte: i } = apartado i
+  // objetivo = { actual: gráfico existente o null, guardar: (gráfico) => void }
+  let graficoObjetivo = null;
   let apiGeoGebra = null;
-
-  const graficoDe = (objetivo) =>
-    objetivo.parte === null ? editor.grafico : editor.partes[objetivo.parte]?.grafico;
 
   async function abrirEditorGrafico(objetivo) {
     graficoObjetivo = objetivo;
-    const actual = graficoDe(objetivo);
+    const actual = objetivo.actual;
     $("#graficoApp").value = actual?.app || "graphing";
     $("#graficoApp").disabled = Boolean(actual);
     $("#graficoAlto").value = actual?.alto || 420;
@@ -1493,16 +2110,9 @@
         alto: Math.min(900, Math.max(200, Number($("#graficoAlto").value) || 420)),
         interactivo: $("#graficoInteractivo").checked
       };
-      if (graficoObjetivo.parte === null) {
-        editor.grafico = grafico;
-        mostrarGraficoEditor();
-      } else {
-        editor.partes[graficoObjetivo.parte].grafico = grafico;
-        renderizarPartesEditor();
-      }
-      actualizarVistaPreviaEditor();
+      graficoObjetivo.guardar(grafico);
       cerrarEditorGrafico();
-      aviso("Gráfico listo. Pulsa «Guardar pregunta» para publicarlo.");
+      aviso("Gráfico listo. No olvides pulsar «Guardar» para publicarlo.");
     } catch (err) {
       aviso(`No se pudo guardar el gráfico: ${err.message}`);
     } finally {
@@ -1511,7 +2121,14 @@
     }
   });
 
-  $("[data-grafico='pregunta']").addEventListener("click", () => abrirEditorGrafico({ parte: null }));
+  $("[data-grafico='pregunta']").addEventListener("click", () => abrirEditorGrafico({
+    actual: editor.grafico,
+    guardar: (g) => {
+      editor.grafico = g;
+      mostrarGraficoEditor();
+      actualizarVistaPreviaEditor();
+    }
+  }));
   $("[data-quitar-grafico='pregunta']").addEventListener("click", () => {
     if (!confirm("¿Quitar el gráfico del enunciado?")) return;
     editor.grafico = null;
@@ -1968,12 +2585,18 @@
     programarRevisionGraficos();
   }
 
+  // Referencias: "q|<pregunta>|q" (enunciado), "q|<pregunta>|<apartado>", "a|<apunte>"
+  function graficoPorRef(ref) {
+    const [tipo, id, clave] = ref.split("|");
+    if (tipo === "a") return datos.apuntes.find((a) => a.id === id)?.grafico;
+    const p = buscarPregunta(id);
+    return clave === "q" ? p?.grafico : p?.partes[Number(clave)]?.grafico;
+  }
+
   async function montarGrafico(el) {
     if (el.dataset.montando) return;
     el.dataset.montando = "1";
-    const [id, clave] = el.dataset.ref.split("|");
-    const p = buscarPregunta(id);
-    const g = clave === "q" ? p?.grafico : p?.partes[Number(clave)]?.grafico;
+    const g = graficoPorRef(el.dataset.ref);
     if (!g?.base64 || !el.isConnected) return;
     const respaldo = el.innerHTML;
     try {
@@ -1990,7 +2613,7 @@
   $$("[data-cerrar]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
 
   /* ================= Filtros ================= */
-  [["#fEstado", "estado"], ["#fPaper", "paper"], ["#fNivel", "nivel"], ["#fDificultad", "dificultad"]]
+  [["#fEstado", "estado"], ["#fPaper", "paper"], ["#fDificultad", "dificultad"]]
     .forEach(([sel, clave]) => {
       $(sel).addEventListener("change", (e) => {
         filtros[clave] = e.target.value;

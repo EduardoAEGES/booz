@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-  <link rel="stylesheet" href="css/styles.css?v=13">
+  <link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 <body>
   <!-- ============ Barra lateral ============ -->
@@ -30,7 +30,7 @@
     </button>
 
     <nav class="nav">
-      <a href="#/pronto/Inicio" class="nav-item" data-seccion="Inicio">
+      <a href="#/todo" class="nav-item" data-seccion="todo">
         <svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio
       </a>
       <a href="#/pronto/Todas las materias" class="nav-item" data-seccion="Todas las materias">
@@ -38,19 +38,19 @@
       </a>
 
       <p class="nav-titulo">Estudio</p>
-      <a href="#/pronto/Apuntes" class="nav-item" data-seccion="Apuntes">
+      <a href="#/apuntes" class="nav-item" data-seccion="apuntes">
         <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Apuntes
       </a>
       <a href="#/" class="nav-item" data-seccion="banco">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Banco de preguntas
       </a>
-      <a href="#/pronto/Tarjetas de memoria" class="nav-item" data-seccion="Tarjetas de memoria">
+      <a href="#/tarjetas" class="nav-item" data-seccion="tarjetas">
         <svg viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="15" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Tarjetas de memoria
       </a>
-      <a href="#/pronto/Hojas de fórmulas" class="nav-item" data-seccion="Hojas de fórmulas">
+      <a href="#/formulas" class="nav-item" data-seccion="formulas">
         <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M12 11v6"/></svg>Hojas de fórmulas
       </a>
-      <a href="#/pronto/Exámenes de práctica" class="nav-item" data-seccion="Exámenes de práctica">
+      <a href="#/examenes" class="nav-item" data-seccion="examenes">
         <svg viewBox="0 0 24 24"><path d="M9 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9"/><rect x="4" y="7" width="9" height="12" rx="2"/></svg>Exámenes de práctica
       </a>
 
@@ -103,22 +103,22 @@
         <h1 id="tituloHero"></h1>
 
         <div class="tabs" role="tablist">
-          <a class="tab" href="#/pronto/Todo" data-seccion="Todo">
+          <a class="tab" href="#/todo" data-seccion="todo">
             <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>Todo
           </a>
           <a class="tab" href="#/" data-seccion="banco">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>Banco de preguntas
           </a>
-          <a class="tab" href="#/pronto/Apuntes" data-seccion="Apuntes">
+          <a class="tab" href="#/apuntes" data-seccion="apuntes">
             <svg viewBox="0 0 24 24"><path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2zM22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>Apuntes
           </a>
-          <a class="tab" href="#/pronto/Tarjetas de memoria" data-seccion="Tarjetas de memoria">
+          <a class="tab" href="#/tarjetas" data-seccion="tarjetas">
             <svg viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="15" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Tarjetas
           </a>
-          <a class="tab" href="#/pronto/Hojas de fórmulas" data-seccion="Hojas de fórmulas">
+          <a class="tab" href="#/formulas" data-seccion="formulas">
             <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14h6M12 11v6"/></svg>Fórmulas
           </a>
-          <a class="tab" href="#/pronto/Exámenes de práctica" data-seccion="Exámenes de práctica">
+          <a class="tab" href="#/examenes" data-seccion="examenes">
             <svg viewBox="0 0 24 24"><path d="M9 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9"/><rect x="4" y="7" width="9" height="12" rx="2"/></svg>Exámenes
           </a>
         </div>
@@ -126,16 +126,34 @@
 
       <!-- Vista: lista de temas (acordeón) -->
       <section class="vista" id="vistaTemas">
+        <div class="guia solo-master">
+          <strong>¿Cómo agrego contenido?</strong>
+          <ol>
+            <li>Pulsa <b>+ Nuevo tema</b> (al final de la lista) y escribe su nombre, por ejemplo «Fracciones».</li>
+            <li>Toca el tema para abrirlo y pulsa <b>+ Nuevo subtema</b>.</li>
+            <li>Entra al subtema y pulsa <b>+ Nueva pregunta</b>.</li>
+          </ol>
+          <p>Los apuntes, tarjetas, fórmulas y exámenes se agregan desde sus pestañas de arriba. Todo se guarda solo.</p>
+        </div>
         <ul class="acordeon" id="acordeon"><li class="cargando">Cargando temas…</li></ul>
         <button class="btn-agregar solo-master" id="btnNuevoTema">+ Nuevo tema</button>
       </section>
 
+      <!-- Vista: apuntes, tarjetas, fórmulas, exámenes y resumen -->
+      <section class="vista oculta" id="vistaSeccion">
+        <div class="solo-master acciones-master" id="accionesSeccion"></div>
+        <div class="filtros" id="filtroTemaSeccion"></div>
+        <div id="contenidoSeccion" class="lista-contenido"></div>
+      </section>
+
       <!-- Vista: preguntas de un subtema o de un tema completo -->
       <section class="vista oculta" id="vistaPreguntas">
-        <div class="solo-master acciones-master">
+        <div class="solo-master acciones-master" id="accionesPreguntas">
           <button class="btn-agregar" id="btnNuevaPregunta">+ Nueva pregunta</button>
-          <button class="btn-agregar secundario" id="btnEditarSubtemaActual">Editar este subtema</button>
+          <button class="btn-agregar secundario" id="btnEditarSubtemaActual">Cambiar nombre del subtema</button>
         </div>
+
+        <div class="cabecera-examen oculto" id="cabeceraExamen"></div>
 
         <div class="filtros">
           <label class="campo">
@@ -154,14 +172,6 @@
               <option value="1">Prueba 1</option>
               <option value="2">Prueba 2</option>
               <option value="3">Prueba 3</option>
-            </select>
-          </label>
-          <label class="campo">
-            <span>Nivel</span>
-            <select id="fNivel">
-              <option value="">Todos los niveles</option>
-              <option value="SL">NM</option>
-              <option value="HL">NS</option>
             </select>
           </label>
           <label class="campo">
@@ -248,25 +258,17 @@
         <button type="button" class="icon-btn" data-cerrar aria-label="Cerrar">✕</button>
       </div>
       <label class="form-campo">
-        <span>Tema</span>
+        <span>Nombre del subtema</span>
+        <input type="text" id="subtemaNombre" required maxlength="200" placeholder="Ejemplo: Suma de fracciones">
+      </label>
+      <label class="form-campo">
+        <span>Pertenece al tema</span>
         <select id="subtemaTema"></select>
       </label>
-      <div class="form-fila">
-        <label class="form-campo corto">
-          <span>Código</span>
-          <input type="text" id="subtemaCodigo" placeholder="1.10" required maxlength="20">
-        </label>
-        <label class="form-campo corto">
-          <span>Nivel</span>
-          <select id="subtemaNivel">
-            <option value="SL">NM (SL)</option>
-            <option value="HL">NS (HL)</option>
-          </select>
-        </label>
-      </div>
-      <label class="form-campo">
-        <span>Nombre del subtema</span>
-        <input type="text" id="subtemaNombre" required maxlength="200">
+      <label class="form-campo corto-ancho">
+        <span>Número del subtema</span>
+        <input type="text" id="subtemaCodigo" maxlength="20">
+        <small class="ayuda">Se pone solo. Cámbialo solo si quieres otro orden.</small>
       </label>
       <div class="dialogo-pie">
         <button type="button" class="accion" data-cerrar>Cancelar</button>
@@ -286,31 +288,25 @@
       <div class="editor-columnas">
         <div class="editor-form">
           <label class="form-campo">
-            <span>Subtema</span>
+            <span>¿En qué subtema va esta pregunta?</span>
             <select id="preguntaSubtema" required></select>
           </label>
           <div class="form-fila">
-            <label class="form-campo">
-              <span>Nivel</span>
-              <select id="preguntaNivel">
-                <option value="SL">NM (SL)</option>
-                <option value="HL">NS (HL)</option>
-              </select>
-            </label>
-            <label class="form-campo">
-              <span>Prueba</span>
-              <select id="preguntaPaper">
-                <option value="1">Prueba 1</option>
-                <option value="2">Prueba 2</option>
-                <option value="3">Prueba 3</option>
-              </select>
-            </label>
             <label class="form-campo">
               <span>Dificultad</span>
               <select id="preguntaDificultad">
                 <option value="facil">Fácil</option>
                 <option value="media">Media</option>
                 <option value="dificil">Difícil</option>
+              </select>
+            </label>
+            <label class="form-campo">
+              <span>Prueba <small>(opcional)</small></span>
+              <select id="preguntaPaper">
+                <option value="">No indicar</option>
+                <option value="1">Prueba 1</option>
+                <option value="2">Prueba 2</option>
+                <option value="3">Prueba 3</option>
               </select>
             </label>
           </div>
@@ -374,6 +370,23 @@
       <div class="dialogo-pie">
         <button type="button" class="accion" data-cerrar>Cancelar</button>
         <button type="submit" class="accion principal">Guardar pregunta</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ============ Diálogo: apuntes, tarjetas, fórmulas y exámenes ============ -->
+  <dialog class="dialogo" id="dlgContenido">
+    <form method="dialog" id="formContenido">
+      <div class="dialogo-cabecera">
+        <h3 id="tituloDlgContenido">Contenido</h3>
+        <button type="button" class="icon-btn" data-cerrar aria-label="Cerrar">✕</button>
+      </div>
+      <div id="camposContenido"></div>
+      <input type="file" accept="image/*" id="inputImagenContenido" hidden>
+      <p class="error-form" id="errorContenido"></p>
+      <div class="dialogo-pie">
+        <button type="button" class="accion" data-cerrar>Cancelar</button>
+        <button type="submit" class="accion principal">Guardar</button>
       </div>
     </form>
   </dialog>
@@ -630,8 +643,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathlive@0.103.0/dist/mathlive.min.js"></script>
-  <script src="js/config.js?v=13"></script>
-  <script src="js/datos-respaldo.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/config.js?v=14"></script>
+  <script src="js/datos-respaldo.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>
