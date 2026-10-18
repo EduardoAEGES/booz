@@ -104,6 +104,7 @@
   const urlSegura = (u) => (typeof u === "string" && (/^https:\/\//.test(u) || /^img\/[\w.-]+$/.test(u)) ? u : "");
   const colorValido = (c) => (/^#[0-9a-f]{6}$/i.test(c || "") ? c : null);
 
+  const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? "" : "s"}`;
   const puntosTotales = (p) => p.partes.reduce((s, parte) => s + (Number(parte.puntos) || 0), 0);
   const hechas = (lista) => lista.filter((p) => progreso.completadas.has(p.id)).length;
   const temasOrdenados = () => [...datos.temas].sort((a, b) => a.numero - b.numero);
@@ -432,7 +433,7 @@
               ${anillo(hechas(delTema), delTema.length)}
               <span class="tema-info">
                 <span class="tema-nombre">${escapar(tema.nombre)}</span>
-                <span class="tema-meta">${tema.subtemas.length} subtemas · ${delTema.length} preguntas</span>
+                <span class="tema-meta">${plural(tema.subtemas.length, "subtema")} · ${plural(delTema.length, "pregunta")}</span>
               </span>
               ${CHEVRON}
             </button>
