@@ -591,6 +591,46 @@
     return `<ol class="opciones">${opciones}</ol>${resultado}`;
   }
 
+  // Apartado escrito con respuesta correcta definida: se corrige solo
+  function parteAutoHtml(p, parte, i, vistaPrevia) {
+    const r = vistaPrevia ? {} : (respuestas[p.id]?.[i] || {});
+    const resultado = r.auto;
+    const bloqueado = vistaPrevia || Boolean(resultado);
+    const correctaVisible = resultado && (resultado.correcta || resultado.vista);
+    const palabraPuntos = parte.puntos === 1 ? "punto" : "puntos";
+
+    let mensaje = "";
+    if (resultado?.correcta) {
+      mensaje = `
+        <div class="resultado-opcion bien">✓ ¡Correcto! +${parte.puntos} ${palabraPuntos}
+          <button type="button" class="link-btn" data-reintentar-auto>Responder otra vez</button>
+        </div>`;
+    } else if (resultado) {
+      mensaje = `
+        <div class="resultado-opcion mal">✗ Tu respuesta no es correcta.
+          <button type="button" class="link-btn" data-reintentar-auto>Intentar otra vez</button>
+          ${resultado.vista ? "" : `<button type="button" class="link-btn" data-ver-respuesta>Ver la respuesta</button>`}
+        </div>`;
+    }
+
+    return `
+      <div class="auto-respuesta ${resultado ? (resultado.correcta ? "correcta" : "incorrecta") : ""}">
+        <label class="auto-etiqueta">Tu respuesta</label>
+        <div class="auto-fila">
+          <input type="text" class="input-auto" value="${escapar(r.borrador ?? "")}" placeholder="Escribe solo el resultado" ${bloqueado ? "disabled" : ""} aria-label="Respuesta del apartado ${i + 1}">
+          <button type="button" class="accion" data-formula-auto title="Escribir con el editor de fórmulas" ${bloqueado ? "disabled" : ""}>ƒ(x)</button>
+          <button type="button" class="accion principal" data-comprobar ${bloqueado ? "disabled" : ""}>Comprobar</button>
+        </div>
+        <div class="vista-previa auto-previa"></div>
+        ${resultado ? "" : `<small class="ayuda">Ejemplos: 4 · 2/3 · x = 5 · (0, 1). Si hay varias respuestas, sepáralas con punto y coma: 2; 3</small>`}
+        ${mensaje}
+        <div class="esquema ${correctaVisible ? "visible" : ""}">
+          <strong>Respuesta correcta: ${texto(parte.respuestas.find((x) => String(x).trim()))}</strong>
+          ${texto(parte.solucion)}
+        </div>
+      </div>`;
+  }
+
   function tarjeta(p, numero, { vistaPrevia = false } = {}) {
     const hecha = progreso.completadas.has(p.id);
     const favorita = progreso.favoritas.has(p.id);
@@ -604,13 +644,17 @@
           <span class="parte-puntos">[${parte.puntos}]</span>
         </div>
         ${graficoHtml(parte.grafico, vistaPrevia ? null : `q|${p.id}|${i}`)}
-        ${parte.tipo === "multiple" ? parteMultipleHtml(p, parte, i) : vistaPrevia ? "" : parteAbiertaHtml(p, parte, i)}
+        ${parte.tipo === "multiple" ? parteMultipleHtml(p, parte, i)
+          : tieneCorreccionAutomatica(parte) ? parteAutoHtml(p, parte, i, vistaPrevia)
+          : vistaPrevia ? "" : parteAbiertaHtml(p, parte, i)}
       </li>`).join("");
 
     const solucion = p.partes.map((parte, i) => {
       const contenido = parte.tipo === "multiple"
         ? `Alternativa ${LETRAS_OPCION[parte.correcta] ?? "?"}${parte.solucion ? `. ${texto(parte.solucion)}` : ""}`
-        : texto(parte.solucion);
+        : tieneCorreccionAutomatica(parte)
+          ? `Respuesta: ${texto(parte.respuestas.find((r) => String(r).trim()))}${parte.solucion ? `. ${texto(parte.solucion)}` : ""}`
+          : texto(parte.solucion);
       return `<li><strong>${i + 1}.</strong>${contenido}</li>`;
     }).join("");
 
@@ -703,6 +747,232 @@
     $("#textoProgreso").textContent = `${completas}/${total}`;
   }
 
+  /* ================= Corrección automática de respuestas escritas ================= */
+  const FUNCIONES_MATE = {
+    sqrt: Math.sqrt, raiz: Math.sqrt, abs: Math.abs, ln: Math.log, log: Math.log10,
+    sen: Math.sin, sin: Math.sin, cos: Math.cos, tan: Math.tan
+  };
+  const NOMBRES_FUNCIONES = Object.keys(FUNCIONES_MATE).sort((a, b) => b.length - a.length);
+
+  // Pasa texto o LaTeX sencillo a una expresión que el analizador entiende
+  function normalizarRespuesta(entrada) {
+    let s = String(entrada ?? "").replace(/\$/g, "").replace(/\\left|\\right/g, "");
+    let antes;
+    do {
+      antes = s;
+      s = s.replace(/\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}/g, "($1)/($2)")
+        .replace(/\\sqrt\[([^\]]*)\]\{([^{}]*)\}/g, "($2)^(1/($1))")
+        .replace(/\\sqrt\{([^{}]*)\}/g, "sqrt($1)")
+        .replace(/\^\{([^{}]*)\}/g, "^($1)");
+    } while (s !== antes);
+    return s
+      .replace(/\\(cdot|times)/g, "*").replace(/\\div/g, "/")
+      .replace(/\\([a-zA-Z]+)/g, "$1").replace(/\\./g, "")
+      .replace(/[{]/g, "(").replace(/[}]/g, ")").replace(/_/g, "")
+      .replace(/[·×]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-")
+      .replace(/π/g, "pi").replace(/√/g, "sqrt").replace(/²/g, "^2").replace(/³/g, "^3")
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/(\d),(\d)/g, "$1.$2")
+      .replace(/\.$/, "");
+  }
+
+  function tokenizar(s) {
+    const tokens = [];
+    let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (/[0-9.]/.test(c)) {
+        const numero = s.slice(i).match(/^(\d+\.?\d*|\.\d+)/);
+        if (!numero) return null;
+        tokens.push({ t: "num", v: parseFloat(numero[0]) });
+        i += numero[0].length;
+      } else if (/[a-z]/.test(c)) {
+        const palabra = s.slice(i).match(/^[a-z]+/)[0];
+        // Separa funciones, pi y variables de una letra ("2xy" = 2·x·y)
+        for (let j = 0; j < palabra.length;) {
+          const resto = palabra.slice(j);
+          const funcion = NOMBRES_FUNCIONES.find((n) => resto.startsWith(n));
+          if (funcion) { tokens.push({ t: "fn", v: funcion }); j += funcion.length; }
+          else if (resto.startsWith("pi")) { tokens.push({ t: "num", v: Math.PI }); j += 2; }
+          else { tokens.push({ t: "var", v: resto[0] }); j += 1; }
+        }
+        i += palabra.length;
+      } else if ("+-*/^()".includes(c)) {
+        tokens.push({ t: c });
+        i += 1;
+      } else if (c === "[" || c === "]") {
+        tokens.push({ t: c === "[" ? "(" : ")" });
+        i += 1;
+      } else {
+        return null;
+      }
+    }
+    return tokens;
+  }
+
+  // Convierte una expresión en una función de las variables (o null si no se entiende)
+  function compilar(s) {
+    const tokens = tokenizar(s);
+    if (!tokens?.length) return null;
+    let pos = 0;
+    const ver = () => tokens[pos];
+    const tomar = () => tokens[pos++];
+    const empiezaFactor = (t) => t && ["num", "var", "fn", "("].includes(t.t);
+
+    function expresion() {
+      let izq = termino();
+      while (ver() && (ver().t === "+" || ver().t === "-")) {
+        const op = tomar().t;
+        const a = izq;
+        const b = termino();
+        izq = op === "+" ? (v) => a(v) + b(v) : (v) => a(v) - b(v);
+      }
+      return izq;
+    }
+    function termino() {
+      let izq = unario();
+      for (;;) {
+        const t = ver();
+        const a = izq;
+        if (t && (t.t === "*" || t.t === "/")) {
+          tomar();
+          const b = unario();
+          izq = t.t === "*" ? (v) => a(v) * b(v) : (v) => a(v) / b(v);
+        } else if (empiezaFactor(t)) {
+          const b = potencia(); // multiplicación implícita: 2x, 3(x+1)
+          izq = (v) => a(v) * b(v);
+        } else {
+          return izq;
+        }
+      }
+    }
+    function unario() {
+      if (ver()?.t === "-") { tomar(); const a = unario(); return (v) => -a(v); }
+      if (ver()?.t === "+") { tomar(); return unario(); }
+      return potencia();
+    }
+    function potencia() {
+      const base = primario();
+      if (ver()?.t === "^") { tomar(); const exp = unario(); return (v) => Math.pow(base(v), exp(v)); }
+      return base;
+    }
+    function primario() {
+      const t = tomar();
+      if (!t) throw new Error("fin");
+      if (t.t === "num") return () => t.v;
+      if (t.t === "var") return (v) => (t.v in v ? v[t.v] : NaN);
+      if (t.t === "fn") {
+        const f = FUNCIONES_MATE[t.v];
+        const arg = ver()?.t === "(" ? primario() : potencia();
+        return (v) => f(arg(v));
+      }
+      if (t.t === "(") {
+        const e = expresion();
+        if (tomar()?.t !== ")") throw new Error("paréntesis");
+        return e;
+      }
+      throw new Error("símbolo");
+    }
+    try {
+      const f = expresion();
+      return pos === tokens.length ? f : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Valores de prueba para comparar expresiones con variables
+  const VALORES_PRUEBA = [1.37, 2.91, -0.73].map((base) =>
+    Object.fromEntries("abcdefghijklmnopqrstuvwxyz".split("").map((l, k) => [l, base + k * 0.17])));
+
+  // Quita "x =", "y =" o "f(x) =" del principio: "x = 4" vale lo mismo que "4"
+  const quitarAsignacion = (s) => {
+    const partes = s.split("=");
+    return partes.length === 2 && /^[a-z](\([a-z]\))?$/.test(partes[0]) ? partes[1] : s;
+  };
+
+  function igualesUno(esperadaTexto, dadaTexto) {
+    const e = quitarAsignacion(normalizarRespuesta(esperadaTexto));
+    const d = quitarAsignacion(normalizarRespuesta(dadaTexto));
+    if (!e || !d) return false;
+    if (e === d) return true;
+
+    const conIgual = (x) => x.split("=").length === 2;
+    if (conIgual(e) !== conIgual(d)) return false;
+
+    if (conIgual(e)) {
+      // Ecuaciones equivalentes: (izq − der) proporcionales en todos los valores de prueba
+      const [l1, r1] = e.split("=");
+      const [l2, r2] = d.split("=");
+      const f1 = compilar(`(${l1})-(${r1})`);
+      const f2 = compilar(`(${l2})-(${r2})`);
+      if (!f1 || !f2) return false;
+      const razones = VALORES_PRUEBA.map((v) => f2(v) / f1(v));
+      return razones.every((r) => Number.isFinite(r) && r !== 0 && Math.abs(r - razones[0]) <= 1e-7 * Math.abs(razones[0]));
+    }
+
+    const fe = compilar(e);
+    const fd = compilar(d);
+    if (!fe || !fd) return false;
+    const ve = fe({});
+    if (Number.isFinite(ve)) {
+      // Número: se acepta con la precisión que escribió el profesor (2.30 → ±0.005)
+      const vd = fd({});
+      const decimales = e.match(/^-?\d+\.(\d+)$/)?.[1].length;
+      const tolerancia = decimales ? 0.5 * 10 ** -decimales : 1e-9 * Math.max(1, Math.abs(ve));
+      return Number.isFinite(vd) && Math.abs(ve - vd) <= tolerancia + 1e-12;
+    }
+    // Expresión con variables: deben valer lo mismo en todos los valores de prueba
+    return VALORES_PRUEBA.every((v) => {
+      const a = fe(v);
+      const b = fd(v);
+      return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 1e-7 * Math.max(1, Math.abs(a));
+    });
+  }
+
+  // Separa varias respuestas: "2; 3", "2, 3" o "2 y 3" (sin romper "(0, 1)" ni "2,5")
+  function dividirLista(s) {
+    const texto = String(s ?? "").replace(/\$/g, "").replace(/\s+(y|o)\s+/gi, ";");
+    const piezas = [];
+    let actual = "";
+    let profundidad = 0;
+    for (let k = 0; k < texto.length; k++) {
+      const c = texto[k];
+      if ("([{".includes(c)) profundidad++;
+      if (")]}".includes(c)) profundidad--;
+      const separa = profundidad === 0 && (c === ";" || (c === "," && /\s/.test(texto[k + 1] || "")));
+      if (separa) { piezas.push(actual); actual = ""; } else { actual += c; }
+    }
+    piezas.push(actual);
+    return piezas.map((p) => p.trim()).filter(Boolean);
+  }
+
+  function coincideLista(esperadas, dadas) {
+    if (esperadas.length !== dadas.length) return false;
+    const usadas = new Set();
+    return esperadas.every((e) => {
+      const k = dadas.findIndex((d, j) => !usadas.has(j) && igualesUno(e, d));
+      if (k < 0) return false;
+      usadas.add(k);
+      return true;
+    });
+  }
+
+  function coincide(esperada, dada) {
+    const listaEsperada = dividirLista(esperada);
+    if (coincideLista(listaEsperada, dividirLista(dada))) return true;
+    // Respuesta con palabras ("Luis tiene 12 años"): se comparan solo los números
+    const soloNumeros = listaEsperada.every((e) => Number.isFinite(compilar(quitarAsignacion(normalizarRespuesta(e)))?.({})));
+    if (!soloNumeros) return false;
+    const numeros = (String(dada).match(/-?\d+(?:[.,]\d+)?/g) || []).map((n) => n.replace(",", "."));
+    return coincideLista(listaEsperada, numeros);
+  }
+
+  const respuestaCorrecta = (aceptadas, dada) => aceptadas.some((a) => coincide(a, dada));
+  const tieneCorreccionAutomatica = (parte) =>
+    parte.tipo === "abierta" && Array.isArray(parte.respuestas) && parte.respuestas.some((r) => String(r).trim());
+
   /* ----- Clics dentro de las tarjetas ----- */
   $("#listaPreguntas").addEventListener("click", (e) => {
     const admin = e.target.closest("[data-admin]");
@@ -712,6 +982,27 @@
     const quitar = e.target.closest("[data-quitar]");
     const opcion = e.target.closest("[data-opcion]");
     const reintentar = e.target.closest("[data-reintentar]");
+    const comprobar = e.target.closest("[data-comprobar]");
+    const reintentarAuto = e.target.closest("[data-reintentar-auto]");
+    const verRespuesta = e.target.closest("[data-ver-respuesta]");
+    const formulaAuto = e.target.closest("[data-formula-auto]");
+
+    if (comprobar) return comprobarRespuesta(comprobar);
+    if (formulaAuto) return abrirEditorMate($(".input-auto", formulaAuto.closest(".parte")));
+    if (reintentarAuto || verRespuesta) {
+      const { tarjetaEl, id, i } = contexto(reintentarAuto || verRespuesta);
+      const r = respuestaDe(id, i);
+      if (verRespuesta) {
+        r.auto.vista = true;
+      } else {
+        delete r.auto;
+        if (progreso.puntos[id]) delete progreso.puntos[id][i];
+        guardarProgreso();
+      }
+      guardarRespuestas();
+      redibujarTarjeta(tarjetaEl);
+      return;
+    }
 
     if (admin) {
       const id = admin.dataset.id;
@@ -833,8 +1124,50 @@
     }
   });
 
+  function comprobarRespuesta(boton) {
+    const { tarjetaEl, pregunta, id, i, parteEl } = contexto(boton);
+    const parte = pregunta.partes[i];
+    const input = $(".input-auto", parteEl);
+    const valor = input.value.trim();
+    if (!valor) {
+      aviso("Escribe tu respuesta antes de comprobar.");
+      input.focus();
+      return;
+    }
+    const correcta = respuestaCorrecta(parte.respuestas, valor);
+    const r = respuestaDe(id, i);
+    r.borrador = valor;
+    r.auto = { correcta };
+    progreso.puntos[id] ??= {};
+    progreso.puntos[id][i] = correcta ? parte.puntos : 0;
+    guardarRespuestas();
+    guardarProgreso();
+    redibujarTarjeta(tarjetaEl);
+  }
+
+  // Enter en la casilla de respuesta = Comprobar
+  $("#listaPreguntas").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || !e.target.classList.contains("input-auto")) return;
+    e.preventDefault();
+    comprobarRespuesta(e.target);
+  });
+
   /* ----- Escritura de respuestas ----- */
   $("#listaPreguntas").addEventListener("input", (e) => {
+    if (e.target.classList.contains("input-auto")) {
+      const { id, i, parteEl } = contexto(e.target);
+      respuestaDe(id, i).borrador = e.target.value;
+      guardarRespuestas();
+      // Vista previa si escribió una fórmula con el editor ($…$)
+      const previa = $(".auto-previa", parteEl);
+      const tieneMates = /\$[^$]+\$/.test(e.target.value);
+      previa.classList.toggle("visible", tieneMates);
+      if (tieneMates) {
+        previa.textContent = e.target.value;
+        renderizarMatematicas(previa);
+      }
+      return;
+    }
     if (e.target.tagName !== "TEXTAREA") return;
     const { id, i } = contexto(e.target);
     respuestaDe(id, i).texto = e.target.value;
@@ -1716,7 +2049,7 @@
   let campoActivo = null; // último campo de texto del editor donde estaba el cursor
   const parteVacia = (tipo) => tipo === "multiple"
     ? { tipo, texto: "", puntos: 1, opciones: ["", "", "", ""], correcta: 0, solucion: "" }
-    : { tipo, texto: "", puntos: 2, solucion: "" };
+    : { tipo, texto: "", puntos: 2, respuestas: [""], solucion: "" };
 
   function opcionesSubtemas(seleccionado) {
     return temasOrdenados().map((t) => `
@@ -1792,6 +2125,20 @@
           </div>`).join("")}
         <button type="button" class="accion" data-parte="agregar-opcion" ${parte.opciones.length >= LETRAS_OPCION.length ? "disabled" : ""}>+ Alternativa</button>` : "";
 
+      const listaRespuestas = parte.respuestas?.length ? parte.respuestas : [""];
+      const respuestasHtml = multiple ? "" : `
+        <div class="respuestas-editor">
+          <label>✅ Respuesta correcta <small>(para que se corrija sola)</small></label>
+          ${listaRespuestas.map((resp, k) => `
+            <div class="opcion-editor">
+              <input type="text" data-campo="respuesta" data-k="${k}" value="${escapar(resp)}" placeholder="${k === 0 ? "Ejemplo: 4" : "Otra forma válida, ej.: x = 4"}">
+              <button type="button" class="mini-btn" data-parte="formula-respuesta" data-k="${k}" title="Escribir con el editor de fórmulas">ƒ(x)</button>
+              <button type="button" class="mini-btn peligro" data-parte="quitar-respuesta" data-k="${k}" title="Quitar" ${listaRespuestas.length <= 1 ? "disabled" : ""}>✕</button>
+            </div>`).join("")}
+          <button type="button" class="accion" data-parte="agregar-respuesta">+ Otra forma válida de escribirla</button>
+          <small class="ayuda">La corrección acepta formas equivalentes: si escribes <b>4</b>, también vale «x = 4», «8/2» o «4,0»; si escribes <b>2x+3</b>, vale «3+2x». Si hay varias soluciones, sepáralas con punto y coma (<b>-2; 3</b>). Déjala vacía si prefieres que el estudiante se autocalifique (por ejemplo, en una demostración).</small>
+        </div>`;
+
       return `
         <div class="parte-editor" data-i="${i}">
           <div class="parte-editor-top">
@@ -1813,7 +2160,8 @@
             ${parte.grafico ? `<button type="button" class="accion" data-parte="quitar-grafico">Quitar gráfico</button>` : ""}
           </div>
           ${opciones}
-          <label>${multiple ? "Explicación de la respuesta (opcional)" : "Esquema de calificación"}</label>
+          ${respuestasHtml}
+          <label>${multiple ? "Explicación de la respuesta (opcional)" : "Solución paso a paso (se muestra después de responder)"}</label>
           <textarea data-campo="solucion" rows="2">${escapar(parte.solucion)}</textarea>
         </div>`;
     }).join("");
@@ -1840,6 +2188,9 @@
         if (parte.tipo === "multiple") {
           limpia.opciones = parte.opciones.map((op) => op.trim());
           limpia.correcta = parte.correcta;
+        } else {
+          const aceptadas = (parte.respuestas || []).map((r) => String(r).trim()).filter(Boolean);
+          if (aceptadas.length) limpia.respuestas = aceptadas;
         }
         if (parte.grafico) limpia.grafico = parte.grafico;
         return limpia;
@@ -1869,10 +2220,14 @@
       nueva.puntos = parte.puntos;
       nueva.solucion = parte.solucion;
       if (parte.grafico) nueva.grafico = parte.grafico;
+      if (nueva.tipo === "abierta" && parte.respuestas?.length) nueva.respuestas = parte.respuestas;
       editor.partes[Number(bloque.dataset.i)] = nueva;
       renderizarPartesEditor();
     } else if (campo === "opcion") {
       parte.opciones[Number(e.target.dataset.k)] = e.target.value;
+    } else if (campo === "respuesta") {
+      parte.respuestas ??= [""];
+      parte.respuestas[Number(e.target.dataset.k)] = e.target.value;
     } else if (campo === "correcta") {
       parte.correcta = Number(e.target.value);
     } else if (campo === "puntos") {
@@ -1903,6 +2258,14 @@
       case "agregar-opcion":
         parte.opciones.push("");
         break;
+      case "agregar-respuesta":
+        parte.respuestas = [...(parte.respuestas?.length ? parte.respuestas : [""]), ""];
+        break;
+      case "quitar-respuesta":
+        parte.respuestas.splice(Number(boton.dataset.k), 1);
+        break;
+      case "formula-respuesta":
+        return abrirEditorMate($(`[data-campo="respuesta"][data-k="${boton.dataset.k}"]`, boton.closest(".parte-editor")));
       case "grafico":
         return abrirEditorGrafico({
           actual: parte.grafico,

@@ -1175,6 +1175,46 @@ math-field::part(virtual-keyboard-toggle) { display: none; }
   math-field { font-size: 22px; }
 }
 
+/* ================= Corrección automática ================= */
+.auto-respuesta {
+  margin-top: 12px;
+  padding: 14px 18px;
+  border: 1.5px solid transparent;
+  border-radius: 18px;
+  background: var(--panel-2);
+}
+.auto-respuesta.correcta { border-color: var(--exito); background: var(--exito-suave); }
+.auto-respuesta.incorrecta { border-color: var(--peligro); background: rgba(220, 38, 38, .06); }
+.auto-etiqueta { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--texto-suave); }
+.auto-fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.input-auto {
+  flex: 1;
+  min-width: 180px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--borde);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--texto);
+  font: inherit;
+  font-size: 17px;
+}
+.input-auto:focus { outline: 0; border-color: var(--acento); }
+.input-auto:disabled { opacity: .85; }
+.auto-fila .accion { height: 46px; }
+.auto-respuesta .ayuda { display: block; margin-top: 8px; }
+.auto-respuesta .esquema strong { color: var(--exito); }
+
+.respuestas-editor {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--exito);
+  border-radius: 12px;
+  background: var(--exito-suave);
+}
+.respuestas-editor > label { margin-top: 0; color: var(--texto); }
+.respuestas-editor .ayuda { display: block; margin-top: 8px; line-height: 1.5; }
+
 /* ================= Ayudas para el MASTER ================= */
 .guia {
   margin-bottom: 20px;

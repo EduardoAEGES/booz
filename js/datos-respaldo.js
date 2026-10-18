@@ -43,12 +43,18 @@ window.DATOS_RESPALDO = {
      "tipo": "abierta",
      "texto": "$2x + 5 = 13$",
      "puntos": 2,
+     "respuestas": [
+      "4"
+     ],
      "solucion": "$2x = 13 - 5 = 8 \\Rightarrow x = \\dfrac{8}{2} = 4$"
     },
     {
      "tipo": "abierta",
      "texto": "$3(x - 2) = 12$",
      "puntos": 2,
+     "respuestas": [
+      "6"
+     ],
      "solucion": "$x - 2 = \\dfrac{12}{3} = 4 \\Rightarrow x = 6$"
     }
    ]
@@ -103,12 +109,18 @@ window.DATOS_RESPALDO = {
      "tipo": "abierta",
      "texto": "Escribe una ecuación usando $x$ para la edad de Luis.",
      "puntos": 2,
+     "respuestas": [
+      "x + 2x = 36"
+     ],
      "solucion": "$x + 2x = 36$"
     },
     {
      "tipo": "abierta",
      "texto": "Halla la edad de cada uno.",
      "puntos": 2,
+     "respuestas": [
+      "12; 24"
+     ],
      "solucion": "$3x = 36 \\Rightarrow x = 12$. Luis tiene 12 años y Ana 24 años."
     }
    ]
@@ -146,6 +158,10 @@ window.DATOS_RESPALDO = {
      "tipo": "abierta",
      "texto": "¿En qué punto corta la recta al eje $y$?",
      "puntos": 1,
+     "respuestas": [
+      "(0, 1)",
+      "1"
+     ],
      "solucion": "Cuando $x = 0$: $f(0) = 1$. Corta en el punto $(0, 1)$."
     }
    ]
@@ -163,12 +179,18 @@ window.DATOS_RESPALDO = {
      "tipo": "abierta",
      "texto": "Escribe la función $C(x)$ del costo de un viaje de $x$ kilómetros.",
      "puntos": 2,
+     "respuestas": [
+      "C(x) = 2x + 3"
+     ],
      "solucion": "$C(x) = 2x + 3$"
     },
     {
      "tipo": "abierta",
      "texto": "¿Cuánto cuesta un viaje de 8 km?",
      "puntos": 1,
+     "respuestas": [
+      "19"
+     ],
      "solucion": "$C(8) = 2(8) + 3 = 19$ soles."
     },
     {
