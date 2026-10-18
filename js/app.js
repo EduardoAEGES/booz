@@ -1389,6 +1389,9 @@
     $("#ajusteAcento").value = colorValido(a.acento) || "#0b84c6";
     logoEditando = urlSegura(a.logo) || LOGO_POR_DEFECTO;
     $("#ajusteLogoVista").src = logoEditando;
+    $("#passwordNueva").value = "";
+    $("#passwordRepetida").value = "";
+    $("#errorPassword").textContent = "";
     $("#dlgAjustes").showModal();
     cargarVersiones();
   }
@@ -1423,6 +1426,30 @@
     } finally {
       boton.disabled = false;
       boton.textContent = "Cambiar logo";
+    }
+  });
+
+  $("#btnCambiarPassword").addEventListener("click", async () => {
+    const nueva = $("#passwordNueva").value;
+    const error = $("#errorPassword");
+    if (nueva.length < 4) return void (error.textContent = "La contraseña debe tener al menos 4 caracteres.");
+    if (nueva !== $("#passwordRepetida").value) return void (error.textContent = "Las dos contraseñas no coinciden.");
+
+    const boton = $("#btnCambiarPassword");
+    boton.disabled = true;
+    error.textContent = "";
+    try {
+      await llamarAdmin("cambiar_password", { nueva });
+      passwordMaster = nueva;
+      try { sessionStorage.setItem(CLAVE_MASTER, nueva); } catch { /* sin almacenamiento */ }
+      $("#passwordNueva").value = "";
+      $("#passwordRepetida").value = "";
+      aviso("Contraseña cambiada. Úsala la próxima vez que entres.");
+    } catch (err) {
+      error.textContent = err.message;
+      if (err.noAutorizado) salirMaster();
+    } finally {
+      boton.disabled = false;
     }
   });
 

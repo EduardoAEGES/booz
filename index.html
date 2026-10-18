@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-  <link rel="stylesheet" href="css/styles.css?v=6">
+  <link rel="stylesheet" href="css/styles.css?v=7">
 </head>
 <body>
   <!-- ============ Barra lateral ============ -->
@@ -401,6 +401,24 @@
       </div>
 
       <hr>
+      <h4>Cambiar contraseña MASTER</h4>
+      <p class="texto-suave">Se guarda cifrada en el servidor. Usa al menos 4 caracteres (mejor 8 o más, con números).</p>
+      <div class="form-fila">
+        <label class="form-campo">
+          <span>Nueva contraseña</span>
+          <input type="password" id="passwordNueva" autocomplete="new-password">
+        </label>
+        <label class="form-campo">
+          <span>Repite la nueva contraseña</span>
+          <input type="password" id="passwordRepetida" autocomplete="new-password">
+        </label>
+      </div>
+      <p class="error-form" id="errorPassword"></p>
+      <div class="botones-fila">
+        <button type="button" class="accion" id="btnCambiarPassword">Cambiar contraseña</button>
+      </div>
+
+      <hr>
       <h4>Copias de seguridad</h4>
       <p class="texto-suave">Exporta todo el contenido a un archivo o importa uno guardado antes. Importar reemplaza todo el contenido actual.</p>
       <div class="botones-fila">
@@ -482,8 +500,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-  <script src="js/config.js?v=6"></script>
-  <script src="js/datos-respaldo.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/config.js?v=7"></script>
+  <script src="js/datos-respaldo.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>

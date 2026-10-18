@@ -1,6 +1,7 @@
 // Edge Function "booz-admin": única vía de escritura del banco de preguntas BOOZ IB.
-// La contraseña MASTER se guarda como secreto ADMIN_PASSWORD y nunca llega al navegador.
-import { createClient } from "npm:@supabase/supabase-js@2";
+// La contraseña MASTER se guarda como hash PBKDF2 en la tabla booz_admin (sin acceso
+// público) y se puede cambiar desde la web con la acción "cambiar_password".
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,8 @@ const TIPOS_IMAGEN: Record<string, string> = {
   "image/webp": "webp",
 };
 const VERSIONES_GUARDADAS = 40;
+const ITERACIONES = 100_000;
+const MIN_PASSWORD = 4;
 
 const responder = (cuerpo: unknown, estado = 200) =>
   new Response(JSON.stringify(cuerpo), {
@@ -25,17 +28,32 @@ const responder = (cuerpo: unknown, estado = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
-async function resumen(texto: string) {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto)));
+const aHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+const deHex = (hex: string) => new Uint8Array(hex.match(/../g)!.map((h) => parseInt(h, 16)));
+
+async function pbkdf2(password: string, sal: Uint8Array, iteraciones: number) {
+  const clave = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: sal, iterations: iteraciones }, clave, 256);
+  return new Uint8Array(bits);
+}
+
+// Formato guardado: pbkdf2$<iteraciones>$<sal hex>$<hash hex>
+async function crearHash(password: string) {
+  const sal = crypto.getRandomValues(new Uint8Array(16));
+  return `pbkdf2$${ITERACIONES}$${aHex(sal)}$${aHex(await pbkdf2(password, sal, ITERACIONES))}`;
 }
 
 // Comparación en tiempo constante para no filtrar información por el tiempo de respuesta
-async function contrasenaValida(recibida: unknown) {
-  const esperada = Deno.env.get("ADMIN_PASSWORD");
-  if (!esperada || typeof recibida !== "string") return false;
-  const [a, b] = await Promise.all([resumen(recibida), resumen(esperada)]);
-  let diferencia = 0;
-  for (let i = 0; i < a.length; i++) diferencia |= a[i] ^ b[i];
+async function contrasenaValida(sb: SupabaseClient, recibida: unknown) {
+  if (typeof recibida !== "string" || !recibida) return false;
+  const { data } = await sb.from("booz_admin").select("password_hash").eq("id", 1).maybeSingle();
+  const partes = data?.password_hash?.split("$");
+  if (!partes || partes.length !== 4 || partes[0] !== "pbkdf2") return false;
+
+  const esperado = deHex(partes[3]);
+  const calculado = await pbkdf2(recibida, deHex(partes[2]), Number(partes[1]));
+  let diferencia = esperado.length ^ calculado.length;
+  for (let i = 0; i < esperado.length; i++) diferencia |= esperado[i] ^ calculado[i];
   return diferencia === 0;
 }
 
@@ -56,20 +74,32 @@ Deno.serve(async (req) => {
     return responder({ error: "Solicitud inválida" }, 400);
   }
 
-  if (!(await contrasenaValida(cuerpo?.password))) {
-    await new Promise((r) => setTimeout(r, 1000)); // frena los intentos repetidos
-    return responder({ error: "Contraseña incorrecta" }, 401);
-  }
-
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  if (!(await contrasenaValida(sb, cuerpo?.password))) {
+    await new Promise((r) => setTimeout(r, 1000)); // frena los intentos repetidos
+    return responder({ error: "Contraseña incorrecta" }, 401);
+  }
+
   try {
     switch (cuerpo.accion) {
       case "verificar":
         return responder({ ok: true });
+
+      case "cambiar_password": {
+        const { nueva } = cuerpo;
+        if (typeof nueva !== "string" || nueva.length < MIN_PASSWORD || nueva.length > 200) {
+          return responder({ error: `La nueva contraseña debe tener al menos ${MIN_PASSWORD} caracteres` }, 400);
+        }
+        const { error } = await sb.from("booz_admin")
+          .update({ password_hash: await crearHash(nueva), actualizado: new Date().toISOString() })
+          .eq("id", 1);
+        if (error) throw error;
+        return responder({ ok: true });
+      }
 
       case "guardar": {
         const { datos } = cuerpo;
