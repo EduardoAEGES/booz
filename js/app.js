@@ -482,6 +482,7 @@
 
   function prepararTarjetas(contenedor) {
     renderizarMatematicas(contenedor);
+    prepararGraficos(contenedor);
     $$(".respuesta-caja", contenedor).forEach((caja) => {
       ajustarAltura($("textarea", caja));
       actualizarVistaPrevia(caja);
@@ -574,6 +575,7 @@
           <div>${texto(parte.texto)}</div>
           <span class="parte-puntos">[${parte.puntos}]</span>
         </div>
+        ${graficoHtml(parte.grafico, vistaPrevia ? null : `${p.id}|${i}`)}
         ${parte.tipo === "multiple" ? parteMultipleHtml(p, parte, i) : vistaPrevia ? "" : parteAbiertaHtml(p, parte, i)}
       </li>`).join("");
 
@@ -613,6 +615,7 @@
         </header>
         <p class="intro">${texto(p.enunciado)}</p>
         ${imagen ? `<img class="imagen-enunciado" src="${escapar(imagen)}" alt="Imagen del enunciado">` : ""}
+        ${graficoHtml(p.grafico, vistaPrevia ? null : `${p.id}|q`)}
         <ol class="partes">${partes}</ol>
         <div class="solucion-completa">
           <h4>Solución completa (${puntosTotales(p)} puntos)</h4>
@@ -1094,7 +1097,8 @@
   });
 
   /* ----- Preguntas ----- */
-  const editor = { id: null, imagen: "", partes: [] };
+  const editor = { id: null, imagen: "", grafico: null, partes: [] };
+  let campoActivo = null; // último campo de texto del editor donde estaba el cursor
   const parteVacia = (tipo) => tipo === "multiple"
     ? { tipo, texto: "", puntos: 1, opciones: ["", "", "", ""], correcta: 0, solucion: "" }
     : { tipo, texto: "", puntos: 2, solucion: "" };
@@ -1124,7 +1128,9 @@
 
     editor.id = id;
     editor.imagen = p.imagen || "";
+    editor.grafico = p.grafico || null;
     editor.partes = p.partes;
+    campoActivo = null;
 
     $("#tituloDlgPregunta").textContent = existente ? `Editar pregunta (${id})` : "Nueva pregunta";
     $("#preguntaSubtema").innerHTML = opcionesSubtemas(subtemaId);
@@ -1135,6 +1141,7 @@
     $("#preguntaPista").value = p.pista || "";
     $("#errorPregunta").textContent = "";
     mostrarImagenEditor();
+    mostrarGraficoEditor();
     renderizarPartesEditor();
     actualizarVistaPreviaEditor();
     $("#dlgPregunta").showModal();
@@ -1146,6 +1153,15 @@
     $("#preguntaImagenVista").classList.toggle("oculto", !url);
     $("#btnQuitarImagenPregunta").classList.toggle("oculto", !url);
     if (url) $("#preguntaImagenVista").src = url;
+  }
+
+  function mostrarGraficoEditor() {
+    const png = urlSegura(editor.grafico?.png);
+    const vista = $("#preguntaGraficoVista");
+    vista.classList.toggle("oculto", !png);
+    if (png) vista.src = png;
+    $("[data-grafico='pregunta']").textContent = editor.grafico ? "📈 Editar gráfico" : "📈 Añadir gráfico";
+    $("[data-quitar-grafico='pregunta']").classList.toggle("oculto", !editor.grafico);
   }
 
   function renderizarPartesEditor() {
@@ -1177,6 +1193,11 @@
           </div>
           <label>Texto del apartado</label>
           <textarea data-campo="texto" rows="2">${escapar(parte.texto)}</textarea>
+          <div class="parte-grafico">
+            ${urlSegura(parte.grafico?.png) ? `<img src="${escapar(urlSegura(parte.grafico.png))}" alt="Vista del gráfico">` : ""}
+            <button type="button" class="accion" data-parte="grafico">📈 ${parte.grafico ? "Editar gráfico" : "Añadir gráfico"}</button>
+            ${parte.grafico ? `<button type="button" class="accion" data-parte="quitar-grafico">Quitar gráfico</button>` : ""}
+          </div>
           ${opciones}
           <label>${multiple ? "Explicación de la respuesta (opcional)" : "Esquema de calificación"}</label>
           <textarea data-campo="solucion" rows="2">${escapar(parte.solucion)}</textarea>
@@ -1194,6 +1215,7 @@
       dificultad: $("#preguntaDificultad").value,
       enunciado: $("#preguntaEnunciado").value.trim(),
       imagen: urlSegura(editor.imagen),
+      ...(editor.grafico ? { grafico: editor.grafico } : {}),
       pista: $("#preguntaPista").value.trim(),
       partes: editor.partes.map((parte) => {
         const limpia = {
@@ -1206,6 +1228,7 @@
           limpia.opciones = parte.opciones.map((op) => op.trim());
           limpia.correcta = parte.correcta;
         }
+        if (parte.grafico) limpia.grafico = parte.grafico;
         return limpia;
       })
     };
@@ -1232,6 +1255,7 @@
       nueva.texto = parte.texto;
       nueva.puntos = parte.puntos;
       nueva.solucion = parte.solucion;
+      if (parte.grafico) nueva.grafico = parte.grafico;
       editor.partes[Number(bloque.dataset.i)] = nueva;
       renderizarPartesEditor();
     } else if (campo === "opcion") {
@@ -1265,6 +1289,12 @@
         break;
       case "agregar-opcion":
         parte.opciones.push("");
+        break;
+      case "grafico":
+        return abrirEditorGrafico({ parte: i });
+      case "quitar-grafico":
+        if (!confirm(`¿Quitar el gráfico del apartado ${i + 1}?`)) return;
+        delete parte.grafico;
         break;
       case "quitar-opcion": {
         const k = Number(boton.dataset.k);
@@ -1377,6 +1407,117 @@
   }
 
   $("#btnNuevaPregunta").addEventListener("click", () => abrirEditorPregunta());
+
+  /* ----- Herramientas matemáticas del editor ----- */
+  const PLANTILLAS_MATE = {
+    formula: "",
+    fraccion: "\\frac{\\placeholder{}}{\\placeholder{}}",
+    raiz: "\\sqrt{\\placeholder{}}",
+    matriz: "\\begin{pmatrix}\\placeholder{} & \\placeholder{}\\\\ \\placeholder{} & \\placeholder{}\\end{pmatrix}"
+  };
+
+  $("#formPregunta").addEventListener("focusin", (e) => {
+    if (e.target.matches("textarea, input[type='text']")) campoActivo = e.target;
+  });
+
+  $$("[data-mate]").forEach((boton) => boton.addEventListener("click", () => {
+    if (!campoActivo || !campoActivo.isConnected) campoActivo = $("#preguntaEnunciado");
+    abrirEditorMate(campoActivo, PLANTILLAS_MATE[boton.dataset.mate]);
+  }));
+
+  /* ----- Gráficos GeoGebra del editor ----- */
+  const dlgGrafico = $("#dlgGrafico");
+  let graficoObjetivo = null; // { parte: null } = enunciado, { parte: i } = apartado i
+  let apiGeoGebra = null;
+
+  const graficoDe = (objetivo) =>
+    objetivo.parte === null ? editor.grafico : editor.partes[objetivo.parte]?.grafico;
+
+  async function abrirEditorGrafico(objetivo) {
+    graficoObjetivo = objetivo;
+    const actual = graficoDe(objetivo);
+    $("#graficoApp").value = actual?.app || "graphing";
+    $("#graficoApp").disabled = Boolean(actual);
+    $("#graficoAlto").value = actual?.alto || 420;
+    $("#graficoInteractivo").checked = Boolean(actual?.interactivo);
+    dlgGrafico.showModal();
+    await montarEditorGrafico(actual?.base64 || "");
+  }
+
+  async function montarEditorGrafico(base64) {
+    const contenedor = $("#ggbEditor");
+    apiGeoGebra = null;
+    contenedor.innerHTML = `<p class="texto-suave">Cargando GeoGebra…</p>`;
+    try {
+      apiGeoGebra = await crearApplet(contenedor, {
+        app: $("#graficoApp").value, base64,
+        ancho: contenedor.clientWidth, alto: Math.min(560, window.innerHeight - 300), editable: true
+      });
+    } catch (err) {
+      contenedor.innerHTML = `<p class="error-form">${escapar(err.message)}</p>`;
+    }
+  }
+
+  $("#graficoApp").addEventListener("change", () => montarEditorGrafico(""));
+
+  function cerrarEditorGrafico() {
+    apiGeoGebra = null;
+    $("#ggbEditor").innerHTML = "";
+    if (dlgGrafico.open) dlgGrafico.close();
+  }
+
+  // Cubre también el cierre con Esc o con los botones de cancelar
+  dlgGrafico.addEventListener("close", () => {
+    apiGeoGebra = null;
+    $("#ggbEditor").innerHTML = "";
+  });
+
+  $("#btnGuardarGrafico").addEventListener("click", async () => {
+    if (!apiGeoGebra) return aviso("GeoGebra aún no ha terminado de cargar.");
+    const boton = $("#btnGuardarGrafico");
+    boton.disabled = true;
+    boton.textContent = "Guardando…";
+    try {
+      const base64 = await new Promise((resolver) => apiGeoGebra.getBase64(resolver));
+      // Imagen del gráfico: vista previa en el editor y respaldo si GeoGebra no carga
+      let png = "";
+      try {
+        ({ url: png } = await llamarAdmin("subir_imagen", { tipo: "image/png", base64: apiGeoGebra.getPNGBase64(1, false, 96) }));
+      } catch (err) {
+        aviso(`El gráfico se guardará sin imagen de respaldo: ${err.message}`);
+      }
+      const grafico = {
+        app: $("#graficoApp").value,
+        base64,
+        png,
+        alto: Math.min(900, Math.max(200, Number($("#graficoAlto").value) || 420)),
+        interactivo: $("#graficoInteractivo").checked
+      };
+      if (graficoObjetivo.parte === null) {
+        editor.grafico = grafico;
+        mostrarGraficoEditor();
+      } else {
+        editor.partes[graficoObjetivo.parte].grafico = grafico;
+        renderizarPartesEditor();
+      }
+      actualizarVistaPreviaEditor();
+      cerrarEditorGrafico();
+      aviso("Gráfico listo. Pulsa «Guardar pregunta» para publicarlo.");
+    } catch (err) {
+      aviso(`No se pudo guardar el gráfico: ${err.message}`);
+    } finally {
+      boton.disabled = false;
+      boton.textContent = "Guardar gráfico";
+    }
+  });
+
+  $("[data-grafico='pregunta']").addEventListener("click", () => abrirEditorGrafico({ parte: null }));
+  $("[data-quitar-grafico='pregunta']").addEventListener("click", () => {
+    if (!confirm("¿Quitar el gráfico del enunciado?")) return;
+    editor.grafico = null;
+    mostrarGraficoEditor();
+    actualizarVistaPreviaEditor();
+  });
 
   /* ----- Ajustes, copias de seguridad y versiones ----- */
   let logoEditando = "";
@@ -1667,51 +1808,184 @@
     dlgDibujo.close();
   });
 
-  /* ================= Diálogo de fórmulas ================= */
+  /* ================= Diálogo de fórmulas (editor visual MathLive) ================= */
   const dlgMate = $("#dlgMate");
+  const campoFormula = $("#campoFormula");
   const entradaLatex = $("#entradaLatex");
   let areaDestino = null;
+  const mathLiveListo = () => Boolean(window.customElements?.get("math-field"));
 
-  function abrirEditorMate(area) {
+  // Abre el editor de fórmulas e inserta el resultado en "area" (textarea o input de texto)
+  function abrirEditorMate(area, latexInicial = "") {
     areaDestino = area;
-    entradaLatex.value = "";
-    previsualizarLatex();
+    $("#formulaBloque").checked = false;
+    entradaLatex.value = latexInicial;
     dlgMate.showModal();
-    entradaLatex.focus();
-  }
 
-  function previsualizarLatex() {
-    const vista = $("#vistaLatex");
-    const codigo = entradaLatex.value.trim();
-    if (!codigo || typeof katex === "undefined") {
-      vista.textContent = "Vista previa";
-      return;
+    if (mathLiveListo()) {
+      campoFormula.hidden = false;
+      $("#btnTeclado").hidden = false;
+      campoFormula.value = latexInicial;
+      campoFormula.focus();
+    } else {
+      // Sin conexión con la librería: queda el campo de LaTeX
+      campoFormula.hidden = true;
+      $("#btnTeclado").hidden = true;
+      $(".latex-avanzado").open = true;
+      entradaLatex.focus();
     }
-    katex.render(codigo, vista, { throwOnError: false, displayMode: true });
   }
 
-  entradaLatex.addEventListener("input", previsualizarLatex);
+  campoFormula.addEventListener("input", () => { entradaLatex.value = campoFormula.value; });
+  entradaLatex.addEventListener("input", () => {
+    if (mathLiveListo()) campoFormula.value = entradaLatex.value;
+  });
 
-  $("#atajos").addEventListener("click", (e) => {
+  // Plantillas (#atajos) y teclado de símbolos (#tecladoSimbolos)
+  dlgMate.addEventListener("click", (e) => {
     const boton = e.target.closest("[data-latex]");
     if (!boton) return;
-    const { selectionStart: ini, selectionEnd: fin, value } = entradaLatex;
-    entradaLatex.value = value.slice(0, ini) + boton.dataset.latex + value.slice(fin);
-    entradaLatex.focus();
-    entradaLatex.selectionStart = entradaLatex.selectionEnd = ini + boton.dataset.latex.length;
-    previsualizarLatex();
+    if (mathLiveListo()) {
+      campoFormula.executeCommand(["insert", boton.dataset.latex, { focus: true, selectionMode: "placeholder" }]);
+      entradaLatex.value = campoFormula.value;
+    } else {
+      const limpio = boton.dataset.latex.replace(/#[?@]/g, "");
+      const { selectionStart: ini, selectionEnd: fin, value } = entradaLatex;
+      entradaLatex.value = value.slice(0, ini) + limpio + value.slice(fin);
+      entradaLatex.focus();
+    }
+  });
+
+  $("#btnTeclado").addEventListener("click", (e) => {
+    const visible = $("#tecladoSimbolos").classList.toggle("oculto") === false;
+    e.currentTarget.setAttribute("aria-expanded", visible);
+    e.currentTarget.textContent = visible ? "⌨ Menos símbolos" : "⌨ Más símbolos";
+    campoFormula.focus();
   });
 
   $("#btnInsertarLatex").addEventListener("click", () => {
-    const codigo = entradaLatex.value.trim();
+    const codigo = (mathLiveListo() ? campoFormula.value : entradaLatex.value).trim();
     if (codigo && areaDestino) {
+      const insercion = $("#formulaBloque").checked ? `$$${codigo}$$` : `$${codigo}$`;
       const { selectionStart: ini, selectionEnd: fin, value } = areaDestino;
-      areaDestino.value = value.slice(0, ini) + `$${codigo}$` + value.slice(fin);
+      areaDestino.value = value.slice(0, ini) + insercion + value.slice(fin);
       areaDestino.dispatchEvent(new Event("input", { bubbles: true }));
       areaDestino.closest(".respuesta-caja")?.classList.add("activa");
+      const posicion = ini + insercion.length;
+      areaDestino.focus();
+      areaDestino.setSelectionRange(posicion, posicion);
     }
     dlgMate.close();
   });
+
+  /* ================= Gráficos GeoGebra ================= */
+  let promesaGeoGebra = null;
+  let contadorApplets = 0;
+
+  function cargarGeoGebra() {
+    if (window.GGBApplet) return Promise.resolve();
+    promesaGeoGebra ??= new Promise((resolver, rechazar) => {
+      const script = document.createElement("script");
+      script.src = "https://www.geogebra.org/apps/deployggb.js";
+      script.onload = resolver;
+      script.onerror = () => {
+        promesaGeoGebra = null;
+        script.remove();
+        rechazar(new Error("No se pudo cargar GeoGebra. Revisa tu conexión a internet."));
+      };
+      document.head.append(script);
+    });
+    return promesaGeoGebra;
+  }
+
+  // Inserta un applet de GeoGebra en "contenedor" y devuelve su API cuando está listo
+  async function crearApplet(contenedor, { app, base64, ancho, alto, editable, interactivo }) {
+    await cargarGeoGebra();
+    const id = `ggb-${++contadorApplets}`;
+    contenedor.innerHTML = `<div id="${id}"></div>`;
+    return new Promise((resolver, rechazar) => {
+      const limite = setTimeout(() => rechazar(new Error("GeoGebra tardó demasiado en cargar.")), 45000);
+      const parametros = {
+        appName: app || "graphing",
+        width: Math.max(280, Math.floor(ancho)),
+        height: alto,
+        language: "es",
+        showMenuBar: false,
+        showToolBar: editable,
+        showAlgebraInput: editable || interactivo,
+        showResetIcon: !editable,
+        showZoomButtons: true,
+        showFullscreenButton: true,
+        enableShiftDragZoom: true,
+        enableRightClick: editable,
+        enableLabelDrags: editable,
+        borderColor: "#e4e7ef",
+        preventFocus: !editable,
+        appletOnLoad: (api) => {
+          clearTimeout(limite);
+          // Si el estudiante no puede editar, se muestra solo la vista gráfica
+          // (el panel de álgebra ocuparía espacio y podría revelar la solución)
+          if (!editable && !interactivo) {
+            try { api.setPerspective(app === "3d" ? "T" : "G"); } catch { /* perspectiva no disponible */ }
+          }
+          resolver(api);
+        }
+      };
+      if (base64) parametros.ggbBase64 = base64;
+      new window.GGBApplet(parametros, true).inject(id);
+    });
+  }
+
+  function graficoHtml(g, ref) {
+    if (!g?.base64) return "";
+    const png = urlSegura(g.png);
+    const alto = Number(g.alto) || 420;
+    const contenido = png
+      ? `<img class="grafico-png" src="${escapar(png)}" alt="Gráfico de la pregunta">`
+      : `<p class="texto-suave">📈 Gráfico GeoGebra</p>`;
+    return ref
+      ? `<div class="grafico" data-ref="${escapar(ref)}" style="min-height:${alto}px">${contenido}</div>`
+      : `<div class="grafico">${contenido}</div>`;
+  }
+
+  // Los applets son pesados: se crean solo cuando su tarjeta se acerca a la pantalla
+  function revisarGraficosPendientes() {
+    $$(".grafico[data-ref]:not([data-montando])").forEach((el) => {
+      const { top, bottom } = el.getBoundingClientRect();
+      if (el.offsetParent !== null && top < window.innerHeight + 300 && bottom > -300) montarGrafico(el);
+    });
+  }
+
+  let temporizadorGraficos;
+  const programarRevisionGraficos = () => {
+    clearTimeout(temporizadorGraficos);
+    temporizadorGraficos = setTimeout(revisarGraficosPendientes, 120);
+  };
+  window.addEventListener("scroll", programarRevisionGraficos, { passive: true });
+  window.addEventListener("resize", programarRevisionGraficos);
+
+  function prepararGraficos() {
+    programarRevisionGraficos();
+  }
+
+  async function montarGrafico(el) {
+    if (el.dataset.montando) return;
+    el.dataset.montando = "1";
+    const [id, clave] = el.dataset.ref.split("|");
+    const p = buscarPregunta(id);
+    const g = clave === "q" ? p?.grafico : p?.partes[Number(clave)]?.grafico;
+    if (!g?.base64 || !el.isConnected) return;
+    const respaldo = el.innerHTML;
+    try {
+      await crearApplet(el, {
+        app: g.app, base64: g.base64, ancho: el.clientWidth,
+        alto: Number(g.alto) || 420, editable: false, interactivo: Boolean(g.interactivo)
+      });
+      el.classList.add("cargado");
+    } catch {
+      el.innerHTML = `${respaldo}<p class="texto-suave">No se pudo abrir GeoGebra; se muestra una imagen del gráfico.</p>`;
+    }
+  }
 
   $$("[data-cerrar]").forEach((b) => b.addEventListener("click", () => b.closest("dialog").close()));
 

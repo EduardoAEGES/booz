@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-  <link rel="stylesheet" href="css/styles.css?v=7">
+  <link rel="stylesheet" href="css/styles.css?v=13">
 </head>
 <body>
   <!-- ============ Barra lateral ============ -->
@@ -76,7 +76,7 @@
   <div class="overlay" id="overlay"></div>
 
   <!-- ============ Zona principal ============ -->
-  <div class="principal">
+  <div class="zona-principal">
     <div class="barra-master solo-master" id="barraMaster">
       <span class="master-titulo">★ Modo MASTER</span>
       <span class="master-estado" id="estadoGuardado">Los cambios se guardan en línea al instante.</span>
@@ -315,10 +315,28 @@
             </label>
           </div>
 
+          <div class="barra-mate">
+            <span>Herramientas matemáticas:</span>
+            <button type="button" class="accion" data-mate="formula">ƒ(x) Fórmula</button>
+            <button type="button" class="accion" data-mate="fraccion">½ Fracción</button>
+            <button type="button" class="accion" data-mate="raiz">√ Raíz</button>
+            <button type="button" class="accion" data-mate="matriz">[ ] Matriz</button>
+            <small>Se insertan donde esté el cursor (enunciado, apartados, alternativas o soluciones).</small>
+          </div>
+
           <label class="form-campo">
-            <span>Enunciado / caso práctico <small>(fórmulas entre $…$)</small></span>
+            <span>Enunciado / caso práctico</span>
             <textarea id="preguntaEnunciado" rows="4" required></textarea>
           </label>
+
+          <div class="form-campo">
+            <span>Gráfico GeoGebra del enunciado <small>(opcional)</small></span>
+            <div class="imagen-campo">
+              <img id="preguntaGraficoVista" alt="Vista del gráfico" class="oculto">
+              <button type="button" class="accion" data-grafico="pregunta">📈 Añadir gráfico</button>
+              <button type="button" class="accion oculto" data-quitar-grafico="pregunta">Quitar</button>
+            </div>
+          </div>
 
           <div class="form-campo">
             <span>Imagen del enunciado <small>(opcional)</small></span>
@@ -460,39 +478,150 @@
     </div>
   </dialog>
 
-  <!-- ============ Diálogo: editor de fórmulas ============ -->
+  <!-- ============ Diálogo: editor visual de fórmulas (MathLive) ============ -->
   <dialog class="dialogo" id="dlgMate">
     <div class="dialogo-cabecera">
       <h3>Insertar fórmula</h3>
       <button class="icon-btn" data-cerrar aria-label="Cerrar">✕</button>
     </div>
+    <p class="texto-suave">Escribe la fórmula tal como se ve: usa el teclado matemático o tu teclado (por ejemplo <code>/</code> para fracción, <code>^</code> para exponente, <code>sqrt</code> para raíz).</p>
     <div class="atajos" id="atajos">
-      <button data-latex="\frac{a}{b}">a/b</button>
-      <button data-latex="\sqrt{x}">√x</button>
-      <button data-latex="\sqrt[n]{x}">ⁿ√x</button>
-      <button data-latex="x^{n}">xⁿ</button>
-      <button data-latex="x_{n}">xₙ</button>
-      <button data-latex="\pi">π</button>
-      <button data-latex="\theta">θ</button>
-      <button data-latex="\le">≤</button>
-      <button data-latex="\ge">≥</button>
-      <button data-latex="\ne">≠</button>
-      <button data-latex="\pm">±</button>
-      <button data-latex="\times">×</button>
-      <button data-latex="\infty">∞</button>
-      <button data-latex="\log_{a}x">logₐ</button>
-      <button data-latex="\ln x">ln</button>
-      <button data-latex="\sin x">sin</button>
-      <button data-latex="\frac{dy}{dx}">dy/dx</button>
-      <button data-latex="\int_{a}^{b} f(x)\,dx">∫</button>
-      <button data-latex="\sum_{k=1}^{n}">Σ</button>
-      <button data-latex="\begin{pmatrix} a & b \\ c & d \end{pmatrix}">matriz</button>
+      <button type="button" data-latex="\frac{#?}{#?}">a/b</button>
+      <button type="button" data-latex="\sqrt{#?}">√x</button>
+      <button type="button" data-latex="\sqrt[#?]{#?}">ⁿ√x</button>
+      <button type="button" data-latex="#@^{#?}">xⁿ</button>
+      <button type="button" data-latex="#@_{#?}">xₙ</button>
+      <button type="button" data-latex="\log_{#?}\left(#?\right)">logₐ</button>
+      <button type="button" data-latex="\ln\left(#?\right)">ln</button>
+      <button type="button" data-latex="\sin\left(#?\right)">sin</button>
+      <button type="button" data-latex="\frac{d}{dx}\left(#?\right)">d/dx</button>
+      <button type="button" data-latex="\int_{#?}^{#?}#?\,dx">∫</button>
+      <button type="button" data-latex="\sum_{k=#?}^{#?}#?">Σ</button>
+      <button type="button" data-latex="\lim_{x\to#?}#?">lím</button>
+      <button type="button" data-latex="\begin{pmatrix}#? &amp; #?\\ #? &amp; #?\end{pmatrix}">matriz</button>
+      <button type="button" data-latex="\begin{cases}#?\\ #?\end{cases}">sistema</button>
+      <button type="button" data-latex="\overrightarrow{#?}">vector</button>
+      <button type="button" data-latex="\binom{#?}{#?}">nCr</button>
     </div>
-    <textarea id="entradaLatex" rows="3" placeholder="Escribe en LaTeX, p. ej. x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}"></textarea>
-    <div class="vista-latex" id="vistaLatex">Vista previa</div>
+    <math-field id="campoFormula" math-virtual-keyboard-policy="manual"></math-field>
+    <div class="formula-opciones">
+      <button type="button" class="accion" id="btnTeclado" aria-expanded="false">⌨ Más símbolos</button>
+      <label class="check"><input type="checkbox" id="formulaBloque"> Mostrar centrada en su propia línea</label>
+    </div>
+    <div class="teclado-simbolos oculto" id="tecladoSimbolos">
+      <div class="grupo-simbolos">
+        <span>Operaciones</span>
+        <button type="button" data-latex="+">+</button>
+        <button type="button" data-latex="-">−</button>
+        <button type="button" data-latex="\times">×</button>
+        <button type="button" data-latex="\div">÷</button>
+        <button type="button" data-latex="\cdot">·</button>
+        <button type="button" data-latex="\pm">±</button>
+        <button type="button" data-latex="\left|#?\right|">|x|</button>
+        <button type="button" data-latex="\left(#?\right)">( )</button>
+        <button type="button" data-latex="#@^{-1}">x⁻¹</button>
+        <button type="button" data-latex="#@^{2}">x²</button>
+        <button type="button" data-latex="e^{#?}">eˣ</button>
+        <button type="button" data-latex="#@!">n!</button>
+        <button type="button" data-latex="^{\circ}">°</button>
+        <button type="button" data-latex="\%">%</button>
+      </div>
+      <div class="grupo-simbolos">
+        <span>Relaciones</span>
+        <button type="button" data-latex="=">=</button>
+        <button type="button" data-latex="\ne">≠</button>
+        <button type="button" data-latex="\approx">≈</button>
+        <button type="button" data-latex="<">&lt;</button>
+        <button type="button" data-latex=">">&gt;</button>
+        <button type="button" data-latex="\le">≤</button>
+        <button type="button" data-latex="\ge">≥</button>
+        <button type="button" data-latex="\Rightarrow">⇒</button>
+        <button type="button" data-latex="\Leftrightarrow">⇔</button>
+        <button type="button" data-latex="\to">→</button>
+        <button type="button" data-latex="\perp">⊥</button>
+        <button type="button" data-latex="\parallel">∥</button>
+      </div>
+      <div class="grupo-simbolos">
+        <span>Letras y constantes</span>
+        <button type="button" data-latex="\pi">π</button>
+        <button type="button" data-latex="\theta">θ</button>
+        <button type="button" data-latex="\alpha">α</button>
+        <button type="button" data-latex="\beta">β</button>
+        <button type="button" data-latex="\lambda">λ</button>
+        <button type="button" data-latex="\mu">μ</button>
+        <button type="button" data-latex="\sigma">σ</button>
+        <button type="button" data-latex="\Delta">Δ</button>
+        <button type="button" data-latex="\infty">∞</button>
+        <button type="button" data-latex="\bar{#?}">x̄</button>
+        <button type="button" data-latex="\hat{#?}">x̂</button>
+        <button type="button" data-latex="\chi^{2}">χ²</button>
+      </div>
+      <div class="grupo-simbolos">
+        <span>Conjuntos y probabilidad</span>
+        <button type="button" data-latex="\in">∈</button>
+        <button type="button" data-latex="\mathbb{R}">ℝ</button>
+        <button type="button" data-latex="\mathbb{Z}">ℤ</button>
+        <button type="button" data-latex="\mathbb{N}">ℕ</button>
+        <button type="button" data-latex="\cap">∩</button>
+        <button type="button" data-latex="\cup">∪</button>
+        <button type="button" data-latex="A'">A′</button>
+        <button type="button" data-latex="P\left(#?\right)">P( )</button>
+        <button type="button" data-latex="P\left(#?\mid #?\right)">P(A|B)</button>
+        <button type="button" data-latex="\mathrm{E}\left(#?\right)">E(X)</button>
+        <button type="button" data-latex="\mathrm{Var}\left(#?\right)">Var</button>
+        <button type="button" data-latex="\sim">∼</button>
+      </div>
+      <div class="grupo-simbolos">
+        <span>Funciones</span>
+        <button type="button" data-latex="\cos\left(#?\right)">cos</button>
+        <button type="button" data-latex="\tan\left(#?\right)">tan</button>
+        <button type="button" data-latex="\sin^{-1}\left(#?\right)">sin⁻¹</button>
+        <button type="button" data-latex="\log\left(#?\right)">log</button>
+        <button type="button" data-latex="f\left(#?\right)">f(x)</button>
+        <button type="button" data-latex="f'\left(#?\right)">f′(x)</button>
+        <button type="button" data-latex="f''\left(#?\right)">f″(x)</button>
+        <button type="button" data-latex="\frac{dy}{dx}">dy/dx</button>
+        <button type="button" data-latex="\int #?\,dx">∫ dx</button>
+        <button type="button" data-latex="\left[#?\right]_{#?}^{#?}">[ ]ₐᵇ</button>
+      </div>
+    </div>
+    <details class="latex-avanzado">
+      <summary>Código LaTeX (avanzado)</summary>
+      <textarea id="entradaLatex" rows="2" spellcheck="false"></textarea>
+    </details>
     <div class="dialogo-pie">
-      <button class="accion" data-cerrar>Cancelar</button>
-      <button class="accion principal" id="btnInsertarLatex">Insertar</button>
+      <button type="button" class="accion" data-cerrar>Cancelar</button>
+      <button type="button" class="accion principal" id="btnInsertarLatex">Insertar</button>
+    </div>
+  </dialog>
+
+  <!-- ============ Diálogo: gráfico GeoGebra (solo MASTER) ============ -->
+  <dialog class="dialogo grande" id="dlgGrafico">
+    <div class="dialogo-cabecera">
+      <h3>Gráfico GeoGebra</h3>
+      <button type="button" class="icon-btn" data-cerrar aria-label="Cerrar">✕</button>
+    </div>
+    <div class="grafico-opciones">
+      <label class="form-campo">
+        <span>Tipo</span>
+        <select id="graficoApp">
+          <option value="graphing">Gráficas de funciones (2D)</option>
+          <option value="geometry">Geometría</option>
+          <option value="3d">Gráficos 3D</option>
+          <option value="classic">GeoGebra clásico (todo)</option>
+        </select>
+      </label>
+      <label class="form-campo corto">
+        <span>Alto (px)</span>
+        <input type="number" id="graficoAlto" min="200" max="900" step="20" value="420">
+      </label>
+      <label class="check"><input type="checkbox" id="graficoInteractivo"> El estudiante puede escribir y modificar en el gráfico</label>
+    </div>
+    <p class="texto-suave">Construye el gráfico en GeoGebra: escribe funciones como <code>f(x)=x^2-4</code>, puntos como <code>A=(1,2)</code>, rectas, polígonos, deslizadores… Ajusta el zoom para que se vea bien y pulsa «Guardar gráfico».</p>
+    <div class="ggb-contenedor" id="ggbEditor"><p class="texto-suave">Cargando GeoGebra…</p></div>
+    <div class="dialogo-pie">
+      <button type="button" class="accion" data-cerrar>Cancelar</button>
+      <button type="button" class="accion principal" id="btnGuardarGrafico">Guardar gráfico</button>
     </div>
   </dialog>
 
@@ -500,8 +629,9 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-  <script src="js/config.js?v=7"></script>
-  <script src="js/datos-respaldo.js?v=7"></script>
-  <script src="js/app.js?v=7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathlive@0.103.0/dist/mathlive.min.js"></script>
+  <script src="js/config.js?v=13"></script>
+  <script src="js/datos-respaldo.js?v=13"></script>
+  <script src="js/app.js?v=13"></script>
 </body>
 </html>
